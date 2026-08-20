@@ -1,8 +1,8 @@
 import React from 'react';
-import { Play, Pause, XCircle, CheckCircle2, AlertTriangle, RefreshCw, Terminal, Clock } from 'lucide-react';
+import { Play, Pause, XCircle, CheckCircle2, AlertTriangle, RefreshCw, Terminal, Clock, X } from 'lucide-react';
 
-export function SendingProgressModal({ sendingState, onPause, onResume, onCancel, onClose }) {
-  if (!sendingState || sendingState.status === 'idle') return null;
+export function SendingProgressModal({ isOpen, sendingState, onPause, onResume, onCancel, onClose }) {
+  if (!isOpen || !sendingState || sendingState.status === 'idle') return null;
 
   const {
     status,
@@ -55,11 +55,12 @@ export function SendingProgressModal({ sendingState, onPause, onResume, onCancel
           </div>
 
           {/* Action Control Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {!isFinished && (
               <>
                 {status === 'running' ? (
                   <button
+                    type="button"
                     onClick={onPause}
                     className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-semibold flex items-center gap-1.5"
                   >
@@ -67,6 +68,7 @@ export function SendingProgressModal({ sendingState, onPause, onResume, onCancel
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={onResume}
                     className="px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-lg text-xs font-semibold flex items-center gap-1.5"
                   >
@@ -74,6 +76,7 @@ export function SendingProgressModal({ sendingState, onPause, onResume, onCancel
                   </button>
                 )}
                 <button
+                  type="button"
                   onClick={onCancel}
                   className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-semibold flex items-center gap-1.5"
                 >
@@ -84,12 +87,22 @@ export function SendingProgressModal({ sendingState, onPause, onResume, onCancel
 
             {isFinished && (
               <button
+                type="button"
                 onClick={onClose}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold"
+                className="px-4 py-1.5 bg-sky-500 hover:bg-sky-400 text-white rounded-lg text-xs font-semibold shadow-md shadow-sky-500/20 transition-all cursor-pointer"
               >
                 Cerrar Ventana
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 text-slate-400 hover:text-white rounded-lg transition-colors"
+              title="Cerrar"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
 

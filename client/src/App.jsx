@@ -295,6 +295,7 @@ export default function App() {
       />
 
       <SendingProgressModal
+        isOpen={isSendingModalOpen}
         sendingState={sendingState}
         onPause={async () => {
           const s = await api.pauseCampaign();
@@ -308,7 +309,10 @@ export default function App() {
           const s = await api.cancelCampaign();
           setSendingState(s);
         }}
-        onClose={() => setIsSendingModalOpen(false)}
+        onClose={() => {
+          setIsSendingModalOpen(false);
+          setSendingState({ status: 'idle' });
+        }}
       />
     </div>
   );
