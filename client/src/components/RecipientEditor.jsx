@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Users, Plus, Trash2, Upload, CheckCircle2, AlertCircle, Sparkles, Filter, ClipboardList, FileSpreadsheet, Check, X } from 'lucide-react';
+import { Users, Plus, Trash2, Upload, CheckCircle2, AlertCircle, Sparkles, Filter, ClipboardList, FileSpreadsheet, X, HelpCircle } from 'lucide-react';
 
 export function RecipientEditor({ recipients, onChangeRecipients }) {
   const [activeMode, setActiveMode] = useState('table'); // 'table' | 'paste'
   const [pasteText, setPasteText] = useState('');
   const [filterQuery, setFilterQuery] = useState('');
-  const [isQuickPasteOpen, setIsQuickPasteOpen] = useState(false);
+  const [showQuickPaste, setShowQuickPaste] = useState(false);
   const [quickPasteInput, setQuickPasteInput] = useState('');
 
   // Agregar fila vacía a la tabla
@@ -101,7 +101,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
     if (newItems.length > 0) {
       onChangeRecipients([...recipients, ...newItems]);
       setQuickPasteInput('');
-      setIsQuickPasteOpen(false);
+      setShowQuickPaste(false);
     } else {
       alert('No se encontraron direcciones de correo válidas.');
     }
@@ -140,7 +140,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col h-full">
-      {/* Header & Modes */}
+      {/* Header & Mode Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
         <div className="flex items-center gap-2.5">
           <div className="p-2.5 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20 shadow-sm">
@@ -148,16 +148,16 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-white tracking-tight">Destinatarios</h2>
+              <h2 className="text-base font-bold text-white tracking-tight">1. Lista de Destinatarios</h2>
               <span className="px-2.5 py-0.5 text-xs font-bold bg-sky-500/15 text-sky-300 rounded-full border border-sky-500/30">
                 {recipients.length} {recipients.length === 1 ? 'Contacto' : 'Contactos'}
               </span>
             </div>
-            <p className="text-xs text-slate-400">Edita datos de personalización o importa correos masivos</p>
+            <p className="text-xs text-slate-400">Agrega o pega fácilmente tus contactos para la campaña</p>
           </div>
         </div>
 
-        {/* Mode Selector Tabs */}
+        {/* Action Mode Toggle */}
         <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
           <button
             type="button"
@@ -184,51 +184,35 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="py-4 flex-1 flex flex-col min-h-[360px]">
+      {/* Main Table / Entry View */}
+      <div className="py-4 flex-1 flex flex-col min-h-[300px]">
         {activeMode === 'table' ? (
           <>
-            {/* Control & Search Action Bar */}
+            {/* Quick Actions Bar */}
             <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3.5">
-              <div className="relative flex-1 min-w-[180px]">
+              <div className="relative flex-1 min-w-[160px]">
                 <input
                   type="text"
-                  placeholder="Filtrar por nombre, correo, empresa..."
+                  placeholder="Buscar en la lista..."
                   value={filterQuery}
                   onChange={(e) => setFilterQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
+                  className="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500"
                 />
-                <Filter className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
-                {filterQuery && (
-                  <button
-                    onClick={() => setFilterQuery('')}
-                    className="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <Filter className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
-                  onClick={() => setIsQuickPasteOpen(!isQuickPasteOpen)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 ${
-                    isQuickPasteOpen
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                  onClick={() => setShowQuickPaste(!showQuickPaste)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 ${
+                    showQuickPaste
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      : 'bg-gradient-to-r from-sky-500/20 to-blue-500/20 hover:from-sky-500/30 hover:to-blue-500/30 text-sky-300 border-sky-500/30'
                   }`}
                 >
-                  <ClipboardList className="w-3.5 h-3.5 text-sky-400" /> Pegar Bloque Correos
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleRemoveDuplicates}
-                  title="Eliminar correos repetidos automáticamente"
-                  className="px-2.5 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors flex items-center gap-1"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Limpiar Duplicados
+                  <ClipboardList className="w-4 h-4 text-sky-400" />
+                  <span>{showQuickPaste ? 'Ocultar Pegado' : '⚡ Pegar Varios Correos'}</span>
                 </button>
 
                 <button
@@ -236,15 +220,24 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
                   onClick={handleAddRow}
                   className="px-3.5 py-1.5 text-xs bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-xl transition-all flex items-center gap-1 shadow-md shadow-sky-500/20"
                 >
-                  <Plus className="w-4 h-4" /> Nueva Fila
+                  <Plus className="w-4 h-4" /> + Fila
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleRemoveDuplicates}
+                  title="Eliminar correos repetidos"
+                  className="px-2.5 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors flex items-center gap-1"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Sin Duplicados
                 </button>
 
                 {recipients.length > 0 && (
                   <button
                     type="button"
                     onClick={handleClearAll}
-                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-colors"
-                    title="Vaciar toda la lista"
+                    className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-colors"
+                    title="Vaciar lista completa"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -252,164 +245,166 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
               </div>
             </div>
 
-            {/* Quick Mass Paste Collapsible Box */}
-            {isQuickPasteOpen && (
-              <div className="mb-3.5 p-3.5 bg-slate-950 border border-sky-500/30 rounded-2xl space-y-2 animate-fade-in shadow-lg">
+            {/* Quick Mass Paste Dropdown Panel */}
+            {showQuickPaste && (
+              <div className="mb-3.5 p-3.5 bg-slate-950 border border-sky-500/40 rounded-2xl space-y-2.5 shadow-xl animate-fade-in">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
-                    <ClipboardList className="w-4 h-4" /> Pegar lista de correos rápidos
-                  </span>
-                  <span className="text-[11px] text-slate-400">Pega múltiples correos (un correo por línea o separados por coma)</span>
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4 text-sky-400" />
+                    <span className="text-xs font-bold text-white">Pegar lista masiva de correos</span>
+                  </div>
+                  <span className="text-[11px] text-slate-400">Pega tu lista (uno por línea o separados por coma)</span>
                 </div>
+
                 <textarea
                   rows={4}
-                  placeholder="ejemplo1@empresa.com&#10;ejemplo2@empresa.com&#10;ejemplo3@empresa.com, Juan, TechCorp, Manager"
+                  placeholder={`correo1@empresa.com\ncorreo2@empresa.com, Carlos, TechCorp, Lead\ncorreo3@empresa.com`}
                   value={quickPasteInput}
                   onChange={(e) => setQuickPasteInput(e.target.value)}
-                  className="w-full p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 resize-none"
+                  className="w-full p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 resize-none shadow-inner"
                 />
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsQuickPasteOpen(false)}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg font-medium"
-                  >
-                    Cerrar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleProcessQuickPaste}
-                    className="px-4 py-1.5 bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold rounded-lg shadow-md shadow-sky-500/20 flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Agregar {processRawText(quickPasteInput).length} Contactos
-                  </button>
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-sky-400 font-mono">
+                    Correos detectados: <strong>{processRawText(quickPasteInput).length}</strong>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickPaste(false)}
+                      className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-medium hover:bg-slate-700"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleProcessQuickPaste}
+                      className="px-4 py-1.5 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-lg text-xs shadow-md shadow-sky-500/20 flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Agregar {processRawText(quickPasteInput).length} a la Tabla
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Spacious Responsive Scrollable Table Container */}
-            <div className="flex-1 border border-slate-800 rounded-2xl overflow-x-auto overflow-y-auto bg-slate-950/70 max-h-[420px] shadow-inner">
+            {/* FLUID 100% VISIBLE TABLE CONTAINER (No Horizontal Scrollbar!) */}
+            <div className="flex-1 border border-slate-800 rounded-2xl overflow-y-auto bg-slate-950/80 max-h-[380px] shadow-inner">
               {recipients.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-14 px-4 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-800/80 flex items-center justify-center mb-3 text-slate-400 shadow-lg">
-                    <Users className="w-7 h-7 text-sky-400" />
+                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-800/80 flex items-center justify-center mb-3 text-slate-400 shadow-md">
+                    <Users className="w-6 h-6 text-sky-400" />
                   </div>
-                  <p className="text-sm font-bold text-slate-200">No hay destinatarios en la lista</p>
+                  <p className="text-sm font-bold text-slate-200">No hay destinatarios agregados</p>
                   <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed">
-                    Añade filas individualmente o usa el botón <strong>"Pegar Bloque Correos"</strong> para agregar tu lista en segundos.
+                    Usa el botón <strong>"⚡ Pegar Varios Correos"</strong> para agregar tu lista en 1 segundo o añade filas manualmente.
                   </p>
                   <div className="flex items-center gap-2 mt-4">
                     <button
                       type="button"
-                      onClick={handleAddRow}
+                      onClick={() => setShowQuickPaste(true)}
                       className="px-4 py-2 bg-sky-500 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-500/20 flex items-center gap-1.5"
                     >
-                      <Plus className="w-4 h-4" /> Añadir Fila
+                      <ClipboardList className="w-4 h-4" /> Pegar Varios Correos
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsQuickPasteOpen(true)}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5"
+                      onClick={handleAddRow}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5"
                     >
-                      <ClipboardList className="w-4 h-4" /> Pegar Varios
+                      <Plus className="w-4 h-4" /> + Fila
                     </button>
                   </div>
                 </div>
               ) : (
-                <table className="w-full text-left text-xs border-collapse min-w-[700px]">
+                <table className="w-full table-fixed text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-slate-900 text-slate-300 border-b border-slate-800 sticky top-0 z-10 font-semibold tracking-wide">
-                      <th className="py-3 px-3.5 w-10 text-center text-slate-500 font-mono">#</th>
-                      <th className="py-3 px-3.5 min-w-[240px]">Correo Electrónico <span className="text-red-400">*</span></th>
-                      <th className="py-3 px-3.5 min-w-[150px]">
-                        Nombre <span className="text-sky-400 font-mono font-normal">({`{nombre}`})</span>
-                      </th>
-                      <th className="py-3 px-3.5 min-w-[150px]">
-                        Empresa <span className="text-sky-400 font-mono font-normal">({`{empresa}`})</span>
-                      </th>
-                      <th className="py-3 px-3.5 min-w-[150px]">
-                        Puesto <span className="text-sky-400 font-mono font-normal">({`{puesto}`})</span>
-                      </th>
-                      <th className="py-3 px-3.5 w-12 text-center">Acción</th>
+                    <tr className="bg-slate-900 text-slate-300 border-b border-slate-800 sticky top-0 z-10 font-semibold">
+                      <th className="py-2.5 px-2 w-[6%] text-center text-slate-500 font-mono">#</th>
+                      <th className="py-2.5 px-2 w-[44%]">Correo Electrónico <span className="text-red-400">*</span></th>
+                      <th className="py-2.5 px-2 w-[16%]">Nombre <span className="text-slate-500 text-[10px]">({`{nombre}`})</span></th>
+                      <th className="py-2.5 px-2 w-[15%]">Empresa <span className="text-slate-500 text-[10px]">({`{empresa}`})</span></th>
+                      <th className="py-2.5 px-2 w-[13%]">Puesto <span className="text-slate-500 text-[10px]">({`{puesto}`})</span></th>
+                      <th className="py-2.5 px-1 w-[6%] text-center"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/50">
                     {filteredRecipients.map((item, idx) => {
                       const isValidEmail = item.email && item.email.includes('@');
                       return (
-                        <tr key={idx} className="hover:bg-slate-900/60 transition-colors group">
-                          <td className="py-2.5 px-3.5 text-slate-500 text-center font-mono text-[11px]">{idx + 1}</td>
+                        <tr key={idx} className="hover:bg-slate-900/60 transition-colors">
+                          <td className="py-2 px-1 text-slate-500 text-center font-mono text-[11px]">{idx + 1}</td>
 
-                          {/* Email Input Field */}
-                          <td className="py-2.5 px-3.5">
-                            <div className="relative flex items-center">
+                          {/* Email Input Field (44% width - Spacious & Crisp) */}
+                          <td className="py-2 px-1.5">
+                            <div className="relative flex items-center w-full">
                               <input
                                 type="email"
                                 placeholder="ejemplo@empresa.com"
                                 value={item.email}
                                 onChange={(e) => handleUpdateRow(idx, 'email', e.target.value)}
-                                className={`w-full py-2 pl-3 pr-8 rounded-xl border bg-slate-900/90 text-white placeholder-slate-600 focus:outline-none font-mono text-xs transition-all ${
+                                className={`w-full py-1.5 pl-2.5 pr-7 rounded-xl border bg-slate-900/90 text-white placeholder-slate-600 focus:outline-none font-mono text-xs transition-all truncate ${
                                   !item.email
                                     ? 'border-slate-800 focus:border-sky-500'
                                     : isValidEmail
-                                    ? 'border-emerald-500/40 bg-emerald-950/10 focus:border-emerald-400'
-                                    : 'border-rose-500/50 bg-rose-950/10 focus:border-rose-400'
+                                    ? 'border-emerald-500/50 bg-emerald-950/20 focus:border-emerald-400'
+                                    : 'border-rose-500/60 bg-rose-950/20 focus:border-rose-400'
                                 }`}
                               />
                               {item.email && (
-                                <div className="absolute right-2.5 pointer-events-none">
+                                <div className="absolute right-2 pointer-events-none">
                                   {isValidEmail ? (
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                                   ) : (
-                                    <AlertCircle className="w-4 h-4 text-rose-400" />
+                                    <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
                                   )}
                                 </div>
                               )}
                             </div>
                           </td>
 
-                          {/* Nombre Input Field */}
-                          <td className="py-2.5 px-3.5">
+                          {/* Nombre Input Field (16% width) */}
+                          <td className="py-2 px-1.5">
                             <input
                               type="text"
-                              placeholder="Ej: Carlos Ruiz"
+                              placeholder="Nombre"
                               value={item.nombre}
                               onChange={(e) => handleUpdateRow(idx, 'nombre', e.target.value)}
-                              className="w-full py-2 px-3 rounded-xl border border-slate-800 bg-slate-900/90 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-colors text-xs"
+                              className="w-full py-1.5 px-2 rounded-xl border border-slate-800 bg-slate-900/90 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 text-xs truncate"
                             />
                           </td>
 
-                          {/* Empresa Input Field */}
-                          <td className="py-2.5 px-3.5">
+                          {/* Empresa Input Field (15% width) */}
+                          <td className="py-2 px-1.5">
                             <input
                               type="text"
-                              placeholder="Ej: TechCorp"
+                              placeholder="Empresa"
                               value={item.empresa}
                               onChange={(e) => handleUpdateRow(idx, 'empresa', e.target.value)}
-                              className="w-full py-2 px-3 rounded-xl border border-slate-800 bg-slate-900/90 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-colors text-xs"
+                              className="w-full py-1.5 px-2 rounded-xl border border-slate-800 bg-slate-900/90 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 text-xs truncate"
                             />
                           </td>
 
-                          {/* Puesto Input Field */}
-                          <td className="py-2.5 px-3.5">
+                          {/* Puesto Input Field (13% width) */}
+                          <td className="py-2 px-1.5">
                             <input
                               type="text"
-                              placeholder="Ej: Recruiter Lead"
+                              placeholder="Puesto"
                               value={item.puesto}
                               onChange={(e) => handleUpdateRow(idx, 'puesto', e.target.value)}
-                              className="w-full py-2 px-3 rounded-xl border border-slate-800 bg-slate-900/90 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 transition-colors text-xs"
+                              className="w-full py-1.5 px-2 rounded-xl border border-slate-800 bg-slate-900/90 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 text-xs truncate"
                             />
                           </td>
 
-                          {/* Delete Row Action */}
-                          <td className="py-2.5 px-3.5 text-center">
+                          {/* Delete Action (6% width) */}
+                          <td className="py-2 px-1 text-center">
                             <button
                               type="button"
                               onClick={() => handleDeleteRow(idx)}
-                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+                              className="p-1 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
                               title="Eliminar fila"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </td>
                         </tr>
@@ -422,32 +417,32 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
           </>
         ) : (
           /* Paste / Import CSV Bulk View */
-          <div className="flex-1 flex flex-col space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+          <div className="flex-1 flex flex-col space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
               <div>
                 <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
                   <FileSpreadsheet className="w-4 h-4 text-sky-400" /> Carga Masiva de Texto o Archivo CSV
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Ingresa correos separados por salto de línea o en formato CSV (<code>email, nombre, empresa, puesto</code>)
+                  Ingresa correos (un correo por línea) o en formato CSV (<code>email, nombre, empresa, puesto</code>)
                 </p>
               </div>
 
-              <label className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-2 shrink-0">
+              <label className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-2 shrink-0">
                 <Upload className="w-4 h-4" /> Cargar Archivo CSV / TXT
                 <input type="file" accept=".csv,.txt" onChange={handleFileUpload} className="hidden" />
               </label>
             </div>
 
             <textarea
-              rows={10}
+              rows={9}
               placeholder={`ejemplo1@empresa.com, Maria, Globant, HR Specialist\nejemplo2@empresa.com, Carlos, MercadoLibre, Tech Lead\ncontacto3@startup.io`}
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
-              className="w-full flex-1 p-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 resize-none leading-relaxed shadow-inner"
+              className="w-full flex-1 p-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 resize-none leading-relaxed shadow-inner"
             />
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-1">
               <span className="text-xs text-slate-400">
                 Contactos detectados: <strong className="text-sky-400 font-mono font-bold">{processRawText(pasteText).length}</strong>
               </span>
@@ -456,7 +451,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
                 <button
                   type="button"
                   onClick={() => setActiveMode('table')}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-xs font-semibold"
+                  className="px-3.5 py-1.5 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-xs font-semibold"
                 >
                   Cancelar
                 </button>
@@ -473,7 +468,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
         )}
       </div>
 
-      {/* Footer Summary */}
+      {/* Footer Status Bar */}
       <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
@@ -485,7 +480,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
             </span>
           )}
         </div>
-        <span className="text-slate-500 hidden sm:inline">Desliza horizontalmente la tabla si necesitas más espacio.</span>
+        <span className="text-slate-500 text-[11px]">Todos los campos están optimizados para mostrarse al 100% en pantalla.</span>
       </div>
     </div>
   );
