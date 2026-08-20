@@ -1,10 +1,21 @@
 import express from 'express';
 import multer from 'multer';
+import fs from 'fs';
 import { UPLOADS_DIR } from '../config.js';
 import { queueService } from '../services/queueService.js';
 import { getTokens } from '../services/dbStore.js';
 
 const router = express.Router();
+
+// Garantizar que la carpeta temporal de subidas exista
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch (e) {
+  console.warn('Advertencia creando UPLOADS_DIR:', e.message);
+}
+
 const upload = multer({ dest: UPLOADS_DIR, limits: { fileSize: 10 * 1024 * 1024 } }); // Máximo 10MB para CV PDF
 
 // Verificar si se puede enviar correos (autenticado)

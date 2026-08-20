@@ -1,13 +1,13 @@
 import fs from 'fs';
 import path from 'path';
-import { STORE_FILE, DATA_DIR } from '../config.js';
+import { STORE_FILE, DATA_DIR, GOOGLE_CONFIG } from '../config.js';
 
 const initialData = {
   tokens: null,
   userInfo: null,
   credentials: {
-    clientId: '',
-    clientSecret: ''
+    clientId: GOOGLE_CONFIG.clientId || '',
+    clientSecret: GOOGLE_CONFIG.clientSecret || ''
   },
   templates: [
     {
@@ -28,33 +28,42 @@ const initialData = {
   history: []
 };
 
+// Respaldo en memoria si el sistema de archivos no es escribible
+let memoryStore = JSON.parse(JSON.stringify(initialData));
+
 function ensureStoreExists() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(STORE_FILE)) {
-    fs.writeFileSync(STORE_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(STORE_FILE)) {
+      fs.writeFileSync(STORE_FILE, JSON.stringify(memoryStore, null, 2), 'utf-8');
+    }
+  } catch (err) {
+    console.warn('Advertencia: Sistema de archivos no escribible, usando almacenamiento en memoria:', err.message);
   }
 }
 
 export function getStore() {
   ensureStoreExists();
   try {
-    const raw = fs.readFileSync(STORE_FILE, 'utf-8');
-    return JSON.parse(raw);
+    if (fs.existsSync(STORE_FILE)) {
+      const raw = fs.readFileSync(STORE_FILE, 'utf-8');
+      return JSON.parse(raw);
+    }
   } catch (error) {
-    console.error('Error al leer store.json, re-creando:', error);
-    fs.writeFileSync(STORE_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
-    return initialData;
+    console.warn('Advertencia leyendo de archivo, usando memoria:', error.message);
   }
+  return memoryStore;
 }
 
 export function saveStore(data) {
+  memoryStore = data;
   ensureStoreExists();
   try {
     fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2), 'utf-8');
   } catch (error) {
-    console.error('Error al guardar store.json:', error);
+    console.warn('Advertencia guardando en disco, conservado en memoria:', error.message);
   }
 }
 
@@ -66,7 +75,11 @@ export function updateCredentials(clientId, clientSecret) {
 
 export function getCredentials() {
   const store = getStore();
-  return store.credentials || { clientId: '', clientSecret: '' };
+  const creds = store.credentials || {};
+  return {
+    clientId: creds.clientId || GOOGLE_CONFIG.clientId || '',
+    clientSecret: creds.clientSecret || GOOGLE_CONFIG.clientSecret || ''
+  };
 }
 
 export function saveTokens(tokens) {

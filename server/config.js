@@ -1,6 +1,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +21,13 @@ export const GOOGLE_CONFIG = {
   ]
 };
 
-export const DATA_DIR = path.join(__dirname, 'data');
+// Usar el directorio temporal de escritura /tmp cuando corra en Vercel
+export const DATA_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'gmail-outreach-data')
+  : path.join(__dirname, 'data');
+
 export const STORE_FILE = path.join(DATA_DIR, 'store.json');
-export const UPLOADS_DIR = path.join(__dirname, 'uploads');
+
+export const UPLOADS_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'gmail-outreach-uploads')
+  : path.join(__dirname, 'uploads');

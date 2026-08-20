@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 import { GOOGLE_CONFIG } from '../config.js';
 import { getCredentials, getTokens, saveTokens, saveUserInfo, clearAuth } from './dbStore.js';
 
-export function getOAuth2Client() {
+export function getOAuth2Client(customRedirectUri) {
   const customCreds = getCredentials();
   const clientId = customCreds.clientId || GOOGLE_CONFIG.clientId;
   const clientSecret = customCreds.clientSecret || GOOGLE_CONFIG.clientSecret;
@@ -12,10 +12,12 @@ export function getOAuth2Client() {
     throw new Error('Falta configurar el GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET.');
   }
 
+  const redirectUri = customRedirectUri || GOOGLE_CONFIG.redirectUri;
+
   const oAuth2Client = new google.auth.OAuth2(
     clientId,
     clientSecret,
-    GOOGLE_CONFIG.redirectUri
+    redirectUri
   );
 
   const savedTokens = getTokens();
@@ -32,8 +34,8 @@ export function getOAuth2Client() {
   return oAuth2Client;
 }
 
-export function getAuthUrl() {
-  const oAuth2Client = getOAuth2Client();
+export function getAuthUrl(customRedirectUri) {
+  const oAuth2Client = getOAuth2Client(customRedirectUri);
   return oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
@@ -41,8 +43,8 @@ export function getAuthUrl() {
   });
 }
 
-export async function handleOAuthCallback(code) {
-  const oAuth2Client = getOAuth2Client();
+export async function handleOAuthCallback(code, customRedirectUri) {
+  const oAuth2Client = getOAuth2Client(customRedirectUri);
   const { tokens } = await oAuth2Client.getToken(code);
   oAuth2Client.setCredentials(tokens);
   saveTokens(tokens);

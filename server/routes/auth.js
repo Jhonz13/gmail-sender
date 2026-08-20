@@ -13,7 +13,8 @@ router.get('/status', (req, res) => {
   res.json({
     isAuthenticated: !!(tokens && tokens.access_token),
     userInfo: userInfo || null,
-    hasCredentials: !!(credentials.clientId && credentials.clientSecret)
+    hasCredentials: !!(credentials.clientId && credentials.clientSecret),
+    credentials
   });
 });
 
@@ -30,8 +31,12 @@ router.post('/credentials', (req, res) => {
 // URL para redirigir a Google OAuth login
 router.get('/google/url', (req, res) => {
   try {
-    const url = getAuthUrl();
-    res.json({ url });
+    const host = req.get('host');
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const dynamicRedirectUri = `${protocol}://${host}/api/auth/google/callback`;
+    
+    const url = getAuthUrl(dynamicRedirectUri);
+    res.json({ url, redirectUri: dynamicRedirectUri });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -45,7 +50,11 @@ router.get('/google/callback', async (req, res) => {
   }
 
   try {
-    await handleOAuthCallback(code);
+    const host = req.get('host');
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const dynamicRedirectUri = `${protocol}://${host}/api/auth/google/callback`;
+
+    await handleOAuthCallback(code, dynamicRedirectUri);
     // Redirigir de regreso a la interfaz de usuario en React
     res.send(`
       <!DOCTYPE html>
@@ -70,7 +79,7 @@ router.get('/google/callback', async (req, res) => {
                 window.opener.postMessage('oauth-success', '*');
                 window.close();
               } else {
-                window.location.href = 'http://localhost:5173';
+                window.location.href = window.location.origin;
               }
             }, 1200);
           </script>
