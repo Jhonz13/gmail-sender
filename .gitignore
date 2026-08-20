@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+client/node_modules
+server/node_modules
+
+# Builds & Outputs
+dist
+client/dist
+.vercel
+
+# Environment & Uploads
+.env
+server/.env
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Storage & Logs
+server/data/store.json
+*.log
+npm-debug.log*
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode
+.idea
