@@ -19,7 +19,7 @@ export function TemplateManager({ isOpen, onClose, templates, onSaveTemplate, on
       onClose();
     } catch (err) {
       alert('Error al guardar plantilla: ' + err.message);
-    } fontally: {
+    } finally {
       setIsSaving(false);
     }
   };

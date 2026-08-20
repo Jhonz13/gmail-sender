@@ -173,7 +173,7 @@ export function EmailComposer({
                 Haz clic para adjuntar tu Curriculum Vitae (PDF)
               </span>
               <span className="block text-[10px] text-slate-500 mt-0.5">Formatos PDF, DOCX (Máx 10MB)</span>
-              <input type="file" accept=".pdf,.doc,.docx" onChange={handleFileUpload} className="hidden" />
+              <input type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} className="hidden" />
             </label>
           )}
         </div>
