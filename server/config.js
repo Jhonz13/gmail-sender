@@ -21,13 +21,7 @@ export const GOOGLE_CONFIG = {
   ]
 };
 
-// Usar el directorio temporal de escritura /tmp cuando corra en Vercel
-export const DATA_DIR = process.env.VERCEL
-  ? path.join(os.tmpdir(), 'gmail-outreach-data')
-  : path.join(__dirname, 'data');
-
+// Usar el directorio temporal de escritura universal os.tmpdir() (escribible tanto localmente como en la nube)
+export const DATA_DIR = path.join(os.tmpdir(), 'gmail-outreach-data');
 export const STORE_FILE = path.join(DATA_DIR, 'store.json');
-
-export const UPLOADS_DIR = process.env.VERCEL
-  ? path.join(os.tmpdir(), 'gmail-outreach-uploads')
-  : path.join(__dirname, 'uploads');
+export const UPLOADS_DIR = path.join(os.tmpdir(), 'gmail-outreach-uploads');
