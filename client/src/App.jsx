@@ -9,7 +9,7 @@ import { PreviewModal } from './components/PreviewModal';
 import { SendingProgressModal } from './components/SendingProgressModal';
 import { HistoryTab } from './components/HistoryTab';
 import { api } from './services/api';
-import { Send, Users, History as HistoryIcon, ShieldAlert } from 'lucide-react';
+import { Send, Users, History as HistoryIcon, ShieldAlert, LayoutGrid, Rows } from 'lucide-react';
 
 export default function App() {
   // Estado de Autenticación
@@ -37,6 +37,7 @@ export default function App() {
 
   // Pestañas y Modales
   const [activeTab, setActiveTab] = useState('composer'); // 'composer' | 'history'
+  const [layoutMode, setLayoutMode] = useState('stacked'); // 'stacked' (ancho completo cómodo) | 'side'
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -198,7 +199,7 @@ export default function App() {
 
       {/* Navegación Pestañas Principales */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab('composer')}
@@ -222,25 +223,48 @@ export default function App() {
             </button>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-            <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-            <span>Respetando límites oficiales de Gmail API</span>
-          </div>
+          {activeTab === 'composer' && (
+            <div className="flex items-center gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+              <button
+                type="button"
+                onClick={() => setLayoutMode('stacked')}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                  layoutMode === 'stacked'
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Vista Cómoda Completa (Sin Scrollbar)"
+              >
+                <Rows className="w-3.5 h-3.5" /> Vista Cómoda
+              </button>
+              <button
+                type="button"
+                onClick={() => setLayoutMode('side')}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                  layoutMode === 'side'
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Vista Lado a Lado"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" /> Vista Dividida
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Tab Composer */}
         {activeTab === 'composer' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Columna Izquierda: Destinatarios (5 Cols) */}
-            <div className="lg:col-span-5 h-full">
+          layoutMode === 'stacked' ? (
+            /* Vista Cómoda a Ancho Completo (Sin compresión de columnas) */
+            <div className="space-y-6">
+              {/* Sección 1: Destinatarios a Ancho Completo */}
               <RecipientEditor
                 recipients={recipients}
                 onChangeRecipients={setRecipients}
               />
-            </div>
 
-            {/* Columna Derecha: Compositor de Mensaje (7 Cols) */}
-            <div className="lg:col-span-7 h-full">
+              {/* Sección 2: Compositor de Correo a Ancho Completo */}
               <EmailComposer
                 subject={subject}
                 onSubjectChange={setSubject}
@@ -259,7 +283,37 @@ export default function App() {
                 isAuthenticated={authStatus.isAuthenticated}
               />
             </div>
-          </div>
+          ) : (
+            /* Vista Dividida */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              <div className="lg:col-span-5 h-full">
+                <RecipientEditor
+                  recipients={recipients}
+                  onChangeRecipients={setRecipients}
+                />
+              </div>
+
+              <div className="lg:col-span-7 h-full">
+                <EmailComposer
+                  subject={subject}
+                  onSubjectChange={setSubject}
+                  body={body}
+                  onBodyChange={setBody}
+                  attachment={attachment}
+                  onAttachmentChange={setAttachment}
+                  delaySeconds={delaySeconds}
+                  onDelaySecondsChange={setDelaySeconds}
+                  templates={templates}
+                  onSelectTemplate={handleSelectTemplate}
+                  onOpenSaveTemplate={() => setIsTemplateModalOpen(true)}
+                  onOpenPreview={() => setIsPreviewModalOpen(true)}
+                  onSend={handleStartSend}
+                  recipientsCount={recipients.filter(r => r.email && r.email.includes('@')).length}
+                  isAuthenticated={authStatus.isAuthenticated}
+                />
+              </div>
+            </div>
+          )
         ) : (
           /* Tab History */
           <HistoryTab history={history} onRefreshHistory={loadHistory} />
