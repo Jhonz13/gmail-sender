@@ -155,6 +155,11 @@ export default function App() {
       return;
     }
 
+    if (!subject.trim() && !body.trim() && !attachment) {
+      alert('Debes escribir un asunto, un mensaje o adjuntar un archivo PDF.');
+      return;
+    }
+
     // Advertencia Anti-Spam para envíos de más de 20 correos
     if (validRecipients.length > 20) {
       const confirmLarge = window.confirm(

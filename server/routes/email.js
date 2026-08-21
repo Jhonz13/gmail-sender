@@ -31,9 +31,17 @@ function requireAuth(req, res, next) {
 router.post('/send', requireAuth, upload.single('attachment'), async (req, res) => {
   try {
     const { recipientsJson, subject, body, delaySeconds } = req.body;
+    const fileAttachment = req.file || null;
 
-    if (!recipientsJson || !subject || !body) {
-      return res.status(400).json({ error: 'Asunto, cuerpo y lista de destinatarios son requeridos.' });
+    if (!recipientsJson) {
+      return res.status(400).json({ error: 'La lista de destinatarios es requerida.' });
+    }
+
+    const finalSubject = subject !== undefined ? subject : '';
+    const finalBody = body !== undefined ? body : '';
+
+    if (!finalSubject.trim() && !finalBody.trim() && !fileAttachment) {
+      return res.status(400).json({ error: 'Debes ingresar un asunto, un mensaje o adjuntar un archivo.' });
     }
 
     let recipients;
@@ -47,12 +55,10 @@ router.post('/send', requireAuth, upload.single('attachment'), async (req, res) 
       return res.status(400).json({ error: 'La lista de destinatarios debe contener al menos un contacto.' });
     }
 
-    const fileAttachment = req.file || null;
-
     const state = await queueService.startJob({
       recipients,
-      subject,
-      body,
+      subject: finalSubject,
+      body: finalBody,
       delaySeconds: delaySeconds || 5,
       attachment: fileAttachment
     });

@@ -92,13 +92,21 @@ export function PreviewModal({ isOpen, onClose, subject, body, recipients, attac
             </div>
             <div className="border-t border-slate-800/80 pt-2">
               <span className="text-slate-400 font-medium">Asunto Final:</span>
-              <p className="text-sm font-semibold text-sky-300 mt-0.5">{previewSubject}</p>
+              <p className="text-sm font-semibold text-sky-300 mt-0.5">
+                {previewSubject ? previewSubject : <span className="text-slate-500 italic font-normal">(Sin asunto)</span>}
+              </p>
             </div>
           </div>
 
           {/* Email Body Rendering Box */}
-          <div className="bg-white text-slate-900 p-6 rounded-xl shadow-inner min-h-[220px] whitespace-pre-wrap font-sans text-sm leading-relaxed border border-slate-300">
-            {previewBody}
+          <div className="bg-white text-slate-900 p-6 rounded-xl shadow-inner min-h-[180px] whitespace-pre-wrap font-sans text-sm leading-relaxed border border-slate-300">
+            {previewBody ? (
+              previewBody
+            ) : (
+              <span className="text-slate-400 italic text-xs font-sans">
+                (Este correo no contiene texto en el cuerpo, únicamente se enviará el archivo adjunto)
+              </span>
+            )}
           </div>
 
           {/* Attachment Pill */}

@@ -49,6 +49,8 @@ export function EmailComposer({
     }
   };
 
+  const isReadyToSend = Boolean((subject.trim() || body.trim() || attachment) && recipientsCount > 0);
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col space-y-4">
       {/* Header & Template Selector */}
@@ -59,7 +61,7 @@ export function EmailComposer({
           </div>
           <div>
             <h2 className="text-base font-bold text-white">Compositor de Correo</h2>
-            <p className="text-xs text-slate-400">Diseña el mensaje y personaliza tu propuesta de trabajo</p>
+            <p className="text-xs text-slate-400">Puedes enviar el mensaje completo o únicamente tu archivo adjunto (CV PDF)</p>
           </div>
         </div>
 
@@ -95,11 +97,11 @@ export function EmailComposer({
       {/* Subject Line Input */}
       <div>
         <label className="block text-xs font-medium text-slate-300 mb-1">
-          Asunto del Correo <span className="text-red-400">*</span>
+          Asunto del Correo <span className="text-slate-500 font-normal">(Opcional)</span>
         </label>
         <input
           type="text"
-          placeholder="Ej: Postulación a posición de {puesto} - {nombre}"
+          placeholder="Ej: Postulación a posición de {puesto} - {nombre} (Opcional)"
           value={subject}
           onChange={(e) => onSubjectChange(e.target.value)}
           className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-sky-500"
@@ -110,7 +112,7 @@ export function EmailComposer({
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <label className="block text-xs font-medium text-slate-300">
-            Cuerpo del Mensaje <span className="text-red-400">*</span>
+            Cuerpo del Mensaje <span className="text-slate-500 font-normal">(Opcional)</span>
           </label>
 
           {/* Dynamic Variables Chips */}
@@ -132,8 +134,8 @@ export function EmailComposer({
         </div>
 
         <textarea
-          rows={10}
-          placeholder="Hola {nombre},&#10;&#10;Me pongo en contacto con ustedes en {empresa} para expresar mi interés en la vacante de {puesto}..."
+          rows={8}
+          placeholder="Escribe un mensaje aquí o déjalo en blanco si solo quieres enviar tu archivo adjunto..."
           value={body}
           onChange={(e) => onBodyChange(e.target.value)}
           className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 resize-none font-sans leading-relaxed"
@@ -210,7 +212,7 @@ export function EmailComposer({
         <button
           type="button"
           onClick={onOpenPreview}
-          disabled={!subject || !body || recipientsCount === 0}
+          disabled={!isReadyToSend}
           className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Eye className="w-4 h-4 text-sky-400" /> Vista Previa del Correo
@@ -219,8 +221,8 @@ export function EmailComposer({
         <button
           type="button"
           onClick={onSend}
-          disabled={!isAuthenticated || !subject || !body || recipientsCount === 0}
-          className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!isAuthenticated || !isReadyToSend}
+          className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <Send className="w-4.5 h-4.5" />
           <span>Enviar Correos Masivos ({recipientsCount})</span>
