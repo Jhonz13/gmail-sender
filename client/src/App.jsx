@@ -127,6 +127,34 @@ export default function App() {
     }
   };
 
+  const loadSavedLists = async () => {
+    try {
+      const lists = await api.getSavedLists();
+      setSavedLists(lists);
+    } catch (e) {
+      console.error('Error cargando listas guardadas:', e);
+    }
+  };
+
+  const handleSaveContactList = async (name) => {
+    try {
+      const res = await api.saveContactList({ name, recipients });
+      setSavedLists(res.lists || []);
+      alert(`¡Lista "${name}" guardada con éxito en la base de datos!`);
+    } catch (e) {
+      alert('Error guardando lista: ' + e.message);
+    }
+  };
+
+  const handleDeleteContactList = async (id) => {
+    try {
+      const res = await api.deleteContactList(id);
+      setSavedLists(res.lists || []);
+    } catch (e) {
+      alert('Error eliminando lista: ' + e.message);
+    }
+  };
+
   const handleConnectGmail = async () => {
     try {
       const { url } = await api.getAuthUrl();
