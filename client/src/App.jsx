@@ -8,8 +8,9 @@ import { TemplateManager } from './components/TemplateManager';
 import { PreviewModal } from './components/PreviewModal';
 import { SendingProgressModal } from './components/SendingProgressModal';
 import { HistoryTab } from './components/HistoryTab';
+import ScraperDashboard from './components/ScraperDashboard';
 import { api } from './services/api';
-import { Send, Users, History as HistoryIcon, ShieldAlert, LayoutGrid, Rows } from 'lucide-react';
+import { Send, Users, History as HistoryIcon, ShieldAlert, LayoutGrid, Rows, Search } from 'lucide-react';
 
 export default function App() {
   // Estado de Autenticación
@@ -48,12 +49,23 @@ export default function App() {
   const [sendingState, setSendingState] = useState({ status: 'idle' });
 
   // Pestañas y Modales
-  const [activeTab, setActiveTab] = useState('composer'); // 'composer' | 'history'
+  const [activeTab, setActiveTab] = useState('composer'); // 'composer' | 'history' | 'scraper'
   const [layoutMode, setLayoutMode] = useState('stacked'); // 'stacked' (ancho completo cómodo) | 'side'
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isSendingModalOpen, setIsSendingModalOpen] = useState(false);
+
+  // Importar leads desde el Scraper directo a la tabla de destinatarios del CRM
+  const handleImportFromScraper = (scrapedRecipients) => {
+    setRecipients(prev => {
+      const existingEmails = new Set(prev.map(r => r.email.toLowerCase()));
+      const newRecs = scrapedRecipients.filter(r => !existingEmails.has(r.email.toLowerCase()));
+      return [...prev, ...newRecs];
+    });
+    alert(`¡Se han cargado ${scrapedRecipients.length} contactos de Aragua a tu lista de envíos masivos!`);
+    setActiveTab('composer');
+  };
 
   // Guardar destinatarios automáticamente en localStorage cada vez que cambien
   useEffect(() => {
@@ -267,6 +279,16 @@ export default function App() {
               <Send className="w-4 h-4" /> Crear Campaña
             </button>
             <button
+              onClick={() => setActiveTab('scraper')}
+              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-2 ${
+                activeTab === 'scraper'
+                  ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
+                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+              }`}
+            >
+              <Search className="w-4 h-4" /> Buscador de Leads (Aragua)
+            </button>
+            <button
               onClick={() => setActiveTab('history')}
               className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-2 ${
                 activeTab === 'history'
@@ -308,8 +330,10 @@ export default function App() {
           )}
         </div>
 
-        {/* Tab Composer */}
-        {activeTab === 'composer' ? (
+        {/* Tab Scraper / Buscador de Leads */}
+        {activeTab === 'scraper' ? (
+          <ScraperDashboard onImportToCampaign={handleImportFromScraper} />
+        ) : activeTab === 'composer' ? (
           layoutMode === 'stacked' ? (
             /* Vista Cómoda a Ancho Completo (Sin compresión de columnas) */
             <div className="space-y-6">

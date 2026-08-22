@@ -111,5 +111,29 @@ export const api = {
       method: 'DELETE'
     });
     return handleResponse(res);
+  },
+
+  // Scraper API
+  async getScraperOptions() {
+    const res = await fetch(`${API_BASE}/scraper/options`);
+    return handleResponse(res);
+  },
+
+  async searchLeads(searchParams) {
+    const res = await fetch(`${API_BASE}/scraper/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(searchParams)
+    });
+    return handleResponse(res);
+  },
+
+  async crawlSite(url) {
+    const res = await fetch(`${API_BASE}/scraper/crawl-site`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    return handleResponse(res);
   }
 };
