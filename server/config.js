@@ -21,7 +21,14 @@ export const GOOGLE_CONFIG = {
   ]
 };
 
-// Usar el directorio temporal de escritura universal os.tmpdir() (escribible tanto localmente como en la nube)
-export const DATA_DIR = path.join(os.tmpdir(), 'gmail-outreach-data');
+// Definir ubicación de almacenamiento permanente
+// En servidor local (PC) usa la carpeta 'server/data' para que los datos NO se borren al reiniciar.
+// En entorno serverless Vercel usa os.tmpdir()
+export const DATA_DIR = process.env.VERCEL 
+  ? path.join(os.tmpdir(), 'gmail-outreach-data')
+  : path.join(__dirname, 'data');
+
 export const STORE_FILE = path.join(DATA_DIR, 'store.json');
-export const UPLOADS_DIR = path.join(os.tmpdir(), 'gmail-outreach-uploads');
+export const UPLOADS_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'gmail-outreach-uploads')
+  : path.join(__dirname, 'uploads');

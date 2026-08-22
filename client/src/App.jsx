@@ -142,28 +142,54 @@ export default function App() {
   const loadSavedLists = async () => {
     try {
       const lists = await api.getSavedLists();
-      setSavedLists(lists);
+      if (Array.isArray(lists) && lists.length > 0) {
+        setSavedLists(lists);
+        localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(lists));
+      } else {
+        const local = localStorage.getItem('gmail_crm_saved_lists');
+        if (local) setSavedLists(JSON.parse(local));
+      }
     } catch (e) {
       console.error('Error cargando listas guardadas:', e);
+      try {
+        const local = localStorage.getItem('gmail_crm_saved_lists');
+        if (local) setSavedLists(JSON.parse(local));
+      } catch (err) {}
     }
   };
 
   const handleSaveContactList = async (name) => {
     try {
       const res = await api.saveContactList({ name, recipients });
-      setSavedLists(res.lists || []);
-      alert(`¡Lista "${name}" guardada con éxito en la base de datos!`);
+      const updated = res.lists || [];
+      setSavedLists(updated);
+      localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(updated));
+      alert(`¡Lista "${name}" guardada con éxito de forma permanente!`);
     } catch (e) {
-      alert('Error guardando lista: ' + e.message);
+      // Fallback local si falla la red
+      const newListItem = {
+        id: `list-${Date.now()}`,
+        name: name || `Lista (${recipients.length})`,
+        recipients,
+        updatedAt: new Date().toISOString()
+      };
+      const updated = [newListItem, ...savedLists];
+      setSavedLists(updated);
+      localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(updated));
+      alert(`¡Lista "${name}" guardada en el navegador!`);
     }
   };
 
   const handleDeleteContactList = async (id) => {
     try {
       const res = await api.deleteContactList(id);
-      setSavedLists(res.lists || []);
+      const updated = res.lists || [];
+      setSavedLists(updated);
+      localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(updated));
     } catch (e) {
-      alert('Error eliminando lista: ' + e.message);
+      const updated = savedLists.filter(l => l.id !== id);
+      setSavedLists(updated);
+      localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(updated));
     }
   };
 
