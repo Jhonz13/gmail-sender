@@ -52,7 +52,7 @@ class QueueService {
     return result;
   }
 
-  async startJob({ recipients, subject, body, delaySeconds = 5, attachment = null }) {
+  async startJob({ recipients, subject, body, delaySeconds = 5, attachment = null, passedTokens = null, passedCredentials = null }) {
     if (this.activeJob && (this.activeJob.status === 'running' || this.activeJob.status === 'paused')) {
       throw new Error('Ya hay una campaña en curso. Por favor espere o cancólela.');
     }
@@ -66,6 +66,8 @@ class QueueService {
       body,
       delaySeconds: parseInt(delaySeconds, 10) || 5,
       attachment,
+      passedTokens,
+      passedCredentials,
       currentIndex: 0,
       sentCount: 0,
       failedCount: 0,
@@ -144,7 +146,9 @@ class QueueService {
           subject: personalizedSubject,
           bodyHtml: `<div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6;">${formattedBody}</div>`,
           bodyText: rawBody,
-          attachment: job.attachment
+          attachment: job.attachment,
+          passedTokens: job.passedTokens,
+          passedCredentials: job.passedCredentials
         });
 
         job.sentCount++;

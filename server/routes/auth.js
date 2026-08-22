@@ -6,9 +6,30 @@ const router = express.Router();
 
 // Estado de autenticación actual
 router.get('/status', (req, res) => {
-  const tokens = getTokens();
-  const userInfo = getUserInfo();
-  const credentials = getCredentials();
+  let tokens = getTokens();
+  let userInfo = getUserInfo();
+  let credentials = getCredentials();
+
+  // Revisar si el cliente envió tokens en los headers HTTP
+  const headerTokens = req.headers['x-google-tokens'];
+  if (headerTokens) {
+    try {
+      const parsed = JSON.parse(headerTokens);
+      if (parsed && (parsed.access_token || parsed.refresh_token)) {
+        tokens = parsed;
+      }
+    } catch (e) {}
+  }
+
+  const headerCreds = req.headers['x-google-credentials'];
+  if (headerCreds) {
+    try {
+      const parsedCreds = JSON.parse(headerCreds);
+      if (parsedCreds && parsedCreds.clientId) {
+        credentials = parsedCreds;
+      }
+    } catch (e) {}
+  }
 
   const hasValidAuth = !!(tokens && (tokens.access_token || tokens.refresh_token));
 
@@ -37,7 +58,15 @@ router.get('/google/url', (req, res) => {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const dynamicRedirectUri = `${protocol}://${host}/api/auth/google/callback`;
     
-    const url = getAuthUrl(dynamicRedirectUri);
+    let passedCredentials = null;
+    const headerCreds = req.headers['x-google-credentials'];
+    if (headerCreds) {
+      try {
+        passedCredentials = JSON.parse(headerCreds);
+      } catch (e) {}
+    }
+
+    const url = getAuthUrl(dynamicRedirectUri, passedCredentials);
     res.json({ url, redirectUri: dynamicRedirectUri });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -56,7 +85,13 @@ router.get('/google/callback', async (req, res) => {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const dynamicRedirectUri = `${protocol}://${host}/api/auth/google/callback`;
 
-    await handleOAuthCallback(code, dynamicRedirectUri);
+    const authResult = await handleOAuthCallback(code, dynamicRedirectUri);
+    const authPayload = JSON.stringify({
+      type: 'oauth-success',
+      tokens: authResult.tokens,
+      userInfo: authResult.userInfo
+    });
+
     // Redirigir de regreso a la interfaz de usuario en React
     res.send(`
       <!DOCTYPE html>
@@ -76,14 +111,15 @@ router.get('/google/callback', async (req, res) => {
             <p>Puedes cerrar esta ventana y regresar a la aplicación.</p>
           </div>
           <script>
+            const data = ${authPayload};
             setTimeout(() => {
               if (window.opener) {
-                window.opener.postMessage('oauth-success', '*');
+                window.opener.postMessage(data, '*');
                 window.close();
               } else {
                 window.location.href = window.location.origin;
               }
-            }, 1200);
+            }, 1000);
           </script>
         </body>
       </html>

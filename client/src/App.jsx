@@ -91,7 +91,23 @@ export default function App() {
 
     // Escuchar mensaje emergente de OAuth popup
     const handleOAuthMessage = (event) => {
-      if (event.data === 'oauth-success') {
+      const isSuccess = event.data === 'oauth-success' || (event.data && event.data.type === 'oauth-success');
+      if (isSuccess) {
+        if (event.data && typeof event.data === 'object') {
+          if (event.data.tokens) {
+            localStorage.setItem('gmail_crm_tokens', JSON.stringify(event.data.tokens));
+          }
+          if (event.data.userInfo) {
+            localStorage.setItem('gmail_crm_user_info', JSON.stringify(event.data.userInfo));
+          }
+        }
+        const updatedStatus = {
+          isAuthenticated: true,
+          userInfo: event.data?.userInfo || { email: 'Cuenta Gmail Conectada' },
+          hasCredentials: true
+        };
+        localStorage.setItem('gmail_crm_auth_status', JSON.stringify(updatedStatus));
+        setAuthStatus(updatedStatus);
         checkAuthStatus();
       }
     };

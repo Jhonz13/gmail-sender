@@ -1,5 +1,18 @@
 const API_BASE = '/api';
 
+function getAuthHeaders() {
+  const headers = {};
+  const savedTokens = localStorage.getItem('gmail_crm_tokens');
+  if (savedTokens) {
+    headers['x-google-tokens'] = savedTokens;
+  }
+  const savedCreds = localStorage.getItem('gmail_crm_credentials');
+  if (savedCreds) {
+    headers['x-google-credentials'] = savedCreds;
+  }
+  return headers;
+}
+
 async function handleResponse(res) {
   const data = await res.json();
   if (!res.ok) {
@@ -11,33 +24,54 @@ async function handleResponse(res) {
 export const api = {
   // Auth
   async getAuthStatus() {
-    const res = await fetch(`${API_BASE}/auth/status`);
+    const res = await fetch(`${API_BASE}/auth/status`, {
+      headers: { ...getAuthHeaders() }
+    });
     return handleResponse(res);
   },
 
   async saveCredentials(clientId, clientSecret) {
+    localStorage.setItem('gmail_crm_credentials', JSON.stringify({ clientId, clientSecret }));
     const res = await fetch(`${API_BASE}/auth/credentials`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({ clientId, clientSecret })
     });
     return handleResponse(res);
   },
 
   async getAuthUrl() {
-    const res = await fetch(`${API_BASE}/auth/google/url`);
+    const res = await fetch(`${API_BASE}/auth/google/url`, {
+      headers: { ...getAuthHeaders() }
+    });
     return handleResponse(res);
   },
 
   async logout() {
-    const res = await fetch(`${API_BASE}/auth/logout`, { method: 'POST' });
+    localStorage.removeItem('gmail_crm_tokens');
+    localStorage.removeItem('gmail_crm_user_info');
+    localStorage.removeItem('gmail_crm_auth_status');
+    const res = await fetch(`${API_BASE}/auth/logout`, { 
+      method: 'POST',
+      headers: { ...getAuthHeaders() }
+    });
     return handleResponse(res);
   },
 
   // Email Campaign
   async sendCampaign(formData) {
+    const savedTokens = localStorage.getItem('gmail_crm_tokens');
+    const savedCreds = localStorage.getItem('gmail_crm_credentials');
+    if (savedTokens && !formData.has('tokensJson')) {
+      formData.append('tokensJson', savedTokens);
+    }
+    if (savedCreds && !formData.has('credentialsJson')) {
+      formData.append('credentialsJson', savedCreds);
+    }
+
     const res = await fetch(`${API_BASE}/email/send`, {
       method: 'POST',
+      headers: { ...getAuthHeaders() },
       body: formData // Form data con JSON y adjunto PDF opcional
     });
     return handleResponse(res);

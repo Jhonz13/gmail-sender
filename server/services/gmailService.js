@@ -3,8 +3,8 @@ import nodemailer from 'nodemailer';
 import { GOOGLE_CONFIG } from '../config.js';
 import { getCredentials, getTokens, saveTokens, saveUserInfo, clearAuth } from './dbStore.js';
 
-export function getOAuth2Client(customRedirectUri) {
-  const customCreds = getCredentials();
+export function getOAuth2Client(customRedirectUri, passedTokens = null, passedCredentials = null) {
+  const customCreds = passedCredentials || getCredentials();
   const clientId = customCreds.clientId || GOOGLE_CONFIG.clientId;
   const clientSecret = customCreds.clientSecret || GOOGLE_CONFIG.clientSecret;
 
@@ -20,13 +20,13 @@ export function getOAuth2Client(customRedirectUri) {
     redirectUri
   );
 
-  const savedTokens = getTokens();
+  const savedTokens = passedTokens || getTokens();
   if (savedTokens) {
     oAuth2Client.setCredentials(savedTokens);
   }
 
   oAuth2Client.on('tokens', (tokens) => {
-    const currentTokens = getTokens() || {};
+    const currentTokens = (passedTokens || getTokens()) || {};
     const mergedTokens = { ...currentTokens, ...tokens };
     saveTokens(mergedTokens);
   });
@@ -34,8 +34,8 @@ export function getOAuth2Client(customRedirectUri) {
   return oAuth2Client;
 }
 
-export function getAuthUrl(customRedirectUri) {
-  const oAuth2Client = getOAuth2Client(customRedirectUri);
+export function getAuthUrl(customRedirectUri, passedCredentials = null) {
+  const oAuth2Client = getOAuth2Client(customRedirectUri, null, passedCredentials);
   return oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
@@ -84,8 +84,8 @@ export async function revokeOAuthToken() {
 /**
  * Convierte un mail en formato RFC 822 / MIME usando Nodemailer y lo envía mediante Gmail API
  */
-export async function sendEmailViaGmail({ to, subject, bodyHtml, bodyText, attachment }) {
-  const oAuth2Client = getOAuth2Client();
+export async function sendEmailViaGmail({ to, subject, bodyHtml, bodyText, attachment, passedTokens = null, passedCredentials = null }) {
+  const oAuth2Client = getOAuth2Client(null, passedTokens, passedCredentials);
   const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
 
   // Usamos nodemailer mailcomposer para generar el mensaje base64url limpio

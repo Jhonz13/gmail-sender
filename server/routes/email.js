@@ -20,15 +20,37 @@ const upload = multer({ dest: UPLOADS_DIR, limits: { fileSize: 10 * 1024 * 1024 
 
 // Verificar si se puede enviar correos (autenticado)
 function requireAuth(req, res, next) {
-  const tokens = getTokens();
-  if (!tokens || !tokens.access_token) {
+  let tokens = getTokens();
+  
+  const headerTokens = req.headers['x-google-tokens'] || req.body?.tokensJson;
+  if (headerTokens) {
+    try {
+      const parsed = typeof headerTokens === 'string' ? JSON.parse(headerTokens) : headerTokens;
+      if (parsed && (parsed.access_token || parsed.refresh_token)) {
+        tokens = parsed;
+        req.passedTokens = parsed;
+      }
+    } catch (e) {}
+  }
+
+  const headerCreds = req.headers['x-google-credentials'] || req.body?.credentialsJson;
+  if (headerCreds) {
+    try {
+      const parsedCreds = typeof headerCreds === 'string' ? JSON.parse(headerCreds) : headerCreds;
+      if (parsedCreds && parsedCreds.clientId) {
+        req.passedCredentials = parsedCreds;
+      }
+    } catch (e) {}
+  }
+
+  if (!tokens || (!tokens.access_token && !tokens.refresh_token)) {
     return res.status(401).json({ error: 'Debes conectar tu cuenta de Gmail antes de enviar correos.' });
   }
   next();
 }
 
 // Iniciar campaña de envíos
-router.post('/send', requireAuth, upload.single('attachment'), async (req, res) => {
+router.post('/send', upload.single('attachment'), requireAuth, async (req, res) => {
   try {
     const { recipientsJson, subject, body, delaySeconds } = req.body;
     const fileAttachment = req.file || null;
@@ -60,7 +82,9 @@ router.post('/send', requireAuth, upload.single('attachment'), async (req, res) 
       subject: finalSubject,
       body: finalBody,
       delaySeconds: delaySeconds || 5,
-      attachment: fileAttachment
+      attachment: fileAttachment,
+      passedTokens: req.passedTokens,
+      passedCredentials: req.passedCredentials
     });
 
     res.json({ message: 'Campaña iniciada con éxito', state });
