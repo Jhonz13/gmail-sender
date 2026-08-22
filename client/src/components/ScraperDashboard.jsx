@@ -7,7 +7,7 @@ export default function ScraperDashboard({ onImportToCampaign }) {
   const [selectedCity, setSelectedCity] = useState('maracay');
   const [selectedSector, setSelectedSector] = useState('comercio');
   const [customQuery, setCustomQuery] = useState('');
-  const [limit, setLimit] = useState(25);
+  const [limit, setLimit] = useState(50);
 
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
@@ -16,7 +16,7 @@ export default function ScraperDashboard({ onImportToCampaign }) {
   const [filterGmailOnly, setFilterGmailOnly] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
 
-  // Crawl sitio único
+  // Crawl sitio único en vivo
   const [singleUrl, setSingleUrl] = useState('');
   const [crawlingSingle, setCrawlingSingle] = useState(false);
   const [singleResult, setSingleResult] = useState(null);
@@ -53,7 +53,7 @@ export default function ScraperDashboard({ onImportToCampaign }) {
       if (data.leads) {
         // Seleccionar por defecto todos los Gmails encontrados
         const initialSelected = new Set(
-          data.leads.filter(l => l.isGmail).map(l => l.id)
+          data.leads.map(l => l.id)
         );
         setSelectedLeads(initialSelected);
       }
@@ -73,6 +73,29 @@ export default function ScraperDashboard({ onImportToCampaign }) {
     try {
       const res = await api.crawlSite(singleUrl);
       setSingleResult(res);
+      if (res.emails && res.emails.length > 0) {
+        // Generar leads automáticamente para importarlos
+        const newLeads = res.emails.map((email, idx) => ({
+          id: `crawl_${Date.now()}_${idx}`,
+          companyName: res.title || `Empresa de ${singleUrl}`,
+          email: email,
+          isGmail: email.includes('@gmail.com'),
+          phone: res.phones[0] || 'N/A',
+          city: 'Estado Aragua',
+          sector: 'Rastreo Web en Vivo',
+          sourceUrl: singleUrl
+        }));
+
+        setResults({
+          success: true,
+          query: { city: 'Rastreo Web', sector: singleUrl },
+          totalFound: newLeads.length,
+          gmailsFound: newLeads.filter(l => l.isGmail).length,
+          corporateFound: newLeads.filter(l => !l.isGmail).length,
+          leads: newLeads
+        });
+        setSelectedLeads(new Set(newLeads.map(l => l.id)));
+      }
     } catch (err) {
       alert('Error en rastreo web: ' + err.message);
     } finally {
@@ -170,14 +193,14 @@ export default function ScraperDashboard({ onImportToCampaign }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              🔍 Buscador & Scraper de Gmails (Estado Aragua)
+              🔍 Buscador de Gmails & Leads en Vivo (Estado Aragua)
             </h1>
             <p style={{ margin: '0.4rem 0 0 0', color: '#9aa0a6', fontSize: '0.95rem' }}>
-              Motor de extracción de alta eficiencia enfocado en empresas de Maracay, Turmero, Cagua, La Victoria y municipios de Aragua.
+              Extracción directa de empresas en Maracay, Turmero, Cagua, La Victoria, Palo Negro, El Limón, Villa de Cura y San Mateo.
             </p>
           </div>
           <div style={{ background: '#1e2330', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.85rem', color: '#e8eaed', border: '1px solid #3c4043' }}>
-            🇻🇪 Region Target: <strong>Estado Aragua, Venezuela</strong>
+            🇻🇪 Región Objetivo: <strong>Estado Aragua, Venezuela</strong>
           </div>
         </div>
       </div>
@@ -312,14 +335,14 @@ export default function ScraperDashboard({ onImportToCampaign }) {
               }}
             >
               {loading ? (
-                <>⏳ Extrayendo leads de Aragua...</>
+                <>⏳ Buscando leads en Aragua...</>
               ) : (
-                <>🚀 Iniciar Escaneo de Leads</>
+                <>🚀 Buscar Leads en Aragua</>
               )}
             </button>
           </form>
 
-          {/* Rastrear sitio corporativo específico */}
+          {/* Rastrear sitio corporativo específico en vivo */}
           <div style={{
             background: '#1e2330',
             border: '1px solid #3c4043',
@@ -327,10 +350,10 @@ export default function ScraperDashboard({ onImportToCampaign }) {
             padding: '1.25rem'
           }}>
             <h4 style={{ margin: '0 0 0.6rem 0', fontSize: '0.95rem', color: '#e8eaed' }}>
-              🕸️ Rastreador Directo de Sitio Web
+              🌐 Rastreador Web de Sitio / URL en Vivo
             </h4>
             <p style={{ fontSize: '0.8rem', color: '#9aa0a6', margin: '0 0 0.8rem 0' }}>
-              Pega cualquier página web de una empresa para extraer sus correos y teléfonos:
+              Ingresa cualquier URL o dominio web para rastrear sus correos en vivo:
             </p>
             <form onSubmit={handleCrawlSingleSite} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               <input
@@ -361,7 +384,7 @@ export default function ScraperDashboard({ onImportToCampaign }) {
                   cursor: crawlingSingle ? 'not-allowed' : 'pointer'
                 }}
               >
-                {crawlingSingle ? 'Escaneando sitio...' : 'Extraer Correos del Sitio'}
+                {crawlingSingle ? 'Rastreando sitio...' : 'Rastrear Correos en Vivo'}
               </button>
             </form>
 
@@ -403,9 +426,9 @@ export default function ScraperDashboard({ onImportToCampaign }) {
               textAlign: 'center'
             }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔄</div>
-              <h3 style={{ margin: 0, color: '#4285f4' }}>Extrayendo correos de empresas en {cities.find(c => c.id === selectedCity)?.name || 'Aragua'}...</h3>
+              <h3 style={{ margin: 0, color: '#4285f4' }}>Obteniendo gmails de empresas en {cities.find(c => c.id === selectedCity)?.name || 'Aragua'}...</h3>
               <p style={{ color: '#9aa0a6', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                Analizando buscadores, directorios y sitios web. Filtrando prioritariamente cuentas @gmail.com reales...
+                Procesando empresas de la zona. Priorizando cuentas @gmail.com reales con datos de contacto...
               </p>
             </div>
           )}
@@ -420,9 +443,9 @@ export default function ScraperDashboard({ onImportToCampaign }) {
               color: '#9aa0a6'
             }}>
               <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
-              <h3 style={{ margin: 0, color: '#e8eaed' }}>Listo para iniciar la búsqueda en Aragua</h3>
+              <h3 style={{ margin: 0, color: '#e8eaed' }}>Buscador de Leads Aragua</h3>
               <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                Selecciona la ciudad (Maracay, Turmero, Cagua, etc.) y el sector empresarial en el panel izquierdo y haz clic en <strong>"Iniciar Escaneo de Leads"</strong>.
+                Selecciona tu ciudad objetivo (Maracay, Turmero, Cagua, La Victoria, etc.) y sector empresarial y presiona <strong>"Buscar Leads en Aragua"</strong>.
               </p>
             </div>
           )}
@@ -470,7 +493,7 @@ export default function ScraperDashboard({ onImportToCampaign }) {
                   
                   <input
                     type="text"
-                    placeholder="Filtrar en tabla..."
+                    placeholder="Filtrar resultados..."
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
                     style={{
