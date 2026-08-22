@@ -13,11 +13,17 @@ import { api } from './services/api';
 import { Send, Users, History as HistoryIcon, ShieldAlert, LayoutGrid, Rows, Search } from 'lucide-react';
 
 export default function App() {
-  // Estado de Autenticación
-  const [authStatus, setAuthStatus] = useState({
-    isAuthenticated: false,
-    userInfo: null,
-    hasCredentials: false
+  // Estado de Autenticación con auto-recuperación de localStorage
+  const [authStatus, setAuthStatus] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gmail_crm_auth_status');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      isAuthenticated: false,
+      userInfo: null,
+      hasCredentials: false
+    };
   });
 
   // Estado de Campaña y Correo con Auto-Recuperación de localStorage
@@ -116,6 +122,9 @@ export default function App() {
     try {
       const data = await api.getAuthStatus();
       setAuthStatus(data);
+      if (data && data.isAuthenticated) {
+        localStorage.setItem('gmail_crm_auth_status', JSON.stringify(data));
+      }
     } catch (e) {
       console.error('Error verificando autenticación:', e);
     }
@@ -207,10 +216,11 @@ export default function App() {
     if (window.confirm('¿Deseas desconectar tu cuenta de Gmail?')) {
       try {
         await api.logout();
-        checkAuthStatus();
       } catch (e) {
-        alert('Error al cerrar sesión: ' + e.message);
+        console.warn('Error al cerrar sesión remotamente:', e.message);
       }
+      localStorage.removeItem('gmail_crm_auth_status');
+      setAuthStatus({ isAuthenticated: false, userInfo: null, hasCredentials: true });
     }
   };
 

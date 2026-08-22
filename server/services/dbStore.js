@@ -85,7 +85,8 @@ export function getCredentials() {
 
 export function saveTokens(tokens) {
   const store = getStore();
-  store.tokens = tokens;
+  const current = store.tokens || {};
+  store.tokens = { ...current, ...tokens };
   saveStore(store);
 }
 

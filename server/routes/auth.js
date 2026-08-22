@@ -10,9 +10,11 @@ router.get('/status', (req, res) => {
   const userInfo = getUserInfo();
   const credentials = getCredentials();
 
+  const hasValidAuth = !!(tokens && (tokens.access_token || tokens.refresh_token));
+
   res.json({
-    isAuthenticated: !!(tokens && tokens.access_token),
-    userInfo: userInfo || null,
+    isAuthenticated: hasValidAuth,
+    userInfo: userInfo || (hasValidAuth ? { email: 'Cuenta Gmail Conectada' } : null),
     hasCredentials: !!(credentials.clientId && credentials.clientSecret),
     credentials
   });
