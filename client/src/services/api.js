@@ -89,5 +89,27 @@ export const api = {
   async getHistory() {
     const res = await fetch(`${API_BASE}/history`);
     return handleResponse(res);
+  },
+
+  // Saved Contact Lists
+  async getSavedLists() {
+    const res = await fetch(`${API_BASE}/lists`);
+    return handleResponse(res);
+  },
+
+  async saveContactList(listObj) {
+    const res = await fetch(`${API_BASE}/lists`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(listObj)
+    });
+    return handleResponse(res);
+  },
+
+  async deleteContactList(id) {
+    const res = await fetch(`${API_BASE}/lists/${id}`, {
+      method: 'DELETE'
+    });
+    return handleResponse(res);
   }
 };

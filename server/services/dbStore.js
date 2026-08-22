@@ -25,6 +25,7 @@ const initialData = {
       createdAt: new Date().toISOString()
     }
   ],
+  savedLists: [],
   history: []
 };
 
@@ -152,4 +153,39 @@ export function addHistoryRecord(record) {
 export function getHistory() {
   const store = getStore();
   return store.history || [];
+}
+
+export function getSavedLists() {
+  const store = getStore();
+  return store.savedLists || [];
+}
+
+export function saveContactList(listObj) {
+  const store = getStore();
+  if (!store.savedLists) store.savedLists = [];
+
+  const id = listObj.id || `list-${Date.now()}`;
+  const newItem = {
+    id,
+    name: listObj.name || `Lista de Contactos (${listObj.recipients?.length || 0})`,
+    recipients: listObj.recipients || [],
+    updatedAt: new Date().toISOString()
+  };
+
+  const idx = store.savedLists.findIndex(l => l.id === id);
+  if (idx !== -1) {
+    store.savedLists[idx] = newItem;
+  } else {
+    store.savedLists.unshift(newItem);
+  }
+
+  saveStore(store);
+  return store.savedLists;
+}
+
+export function deleteContactList(id) {
+  const store = getStore();
+  store.savedLists = (store.savedLists || []).filter(l => l.id !== id);
+  saveStore(store);
+  return store.savedLists;
 }

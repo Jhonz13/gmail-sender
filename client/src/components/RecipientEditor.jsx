@@ -1,12 +1,24 @@
 import React, { useState } from 'react';
-import { Users, Plus, Trash2, Upload, CheckCircle2, AlertCircle, Sparkles, Filter, ClipboardList, FileSpreadsheet, X, HelpCircle } from 'lucide-react';
+import { Users, Plus, Trash2, Upload, CheckCircle2, AlertCircle, Sparkles, Filter, ClipboardList, FileSpreadsheet, Save, FolderOpen, X, Check, Database } from 'lucide-react';
 
-export function RecipientEditor({ recipients, onChangeRecipients }) {
+export function RecipientEditor({
+  recipients,
+  onChangeRecipients,
+  savedLists = [],
+  onSaveList,
+  onLoadList,
+  onDeleteList
+}) {
   const [activeMode, setActiveMode] = useState('table'); // 'table' | 'paste'
   const [pasteText, setPasteText] = useState('');
   const [filterQuery, setFilterQuery] = useState('');
   const [showQuickPaste, setShowQuickPaste] = useState(false);
   const [quickPasteInput, setQuickPasteInput] = useState('');
+
+  // Modales de listas guardadas
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showListsModal, setShowListsModal] = useState(false);
+  const [listNameInput, setListNameInput] = useState('');
 
   // Agregar fila vacía a la tabla
   const handleAddRow = () => {
@@ -48,6 +60,16 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
       return true;
     });
     onChangeRecipients(unique);
+  };
+
+  // Guardar lista en BD
+  const handleConfirmSaveList = () => {
+    const finalName = listNameInput.trim() || `Lista de ${recipients.length} Contactos`;
+    if (onSaveList) {
+      onSaveList(finalName);
+    }
+    setListNameInput('');
+    setShowSaveModal(false);
   };
 
   // Procesar pegado de texto rápido en bloque
@@ -139,7 +161,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
   const invalidCount = recipients.length - validCount;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col h-full">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col h-full relative">
       {/* Header & Mode Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
         <div className="flex items-center gap-2.5">
@@ -153,7 +175,11 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
                 {recipients.length} {recipients.length === 1 ? 'Contacto' : 'Contactos'}
               </span>
             </div>
-            <p className="text-xs text-slate-400">Agrega o pega fácilmente tus contactos para la campaña</p>
+            <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+              <span className="text-emerald-400 flex items-center gap-1 font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Auto-guardado en tu navegador
+              </span>
+            </p>
           </div>
         </div>
 
@@ -202,6 +228,30 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
+                {/* Botón Guardar Lista en BD */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setListNameInput(`Mis ${recipients.length} Correos - ${new Date().toLocaleDateString()}`);
+                    setShowSaveModal(true);
+                  }}
+                  disabled={recipients.length === 0}
+                  className="px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/20 disabled:opacity-50"
+                  title="Guardar esta lista en la Base de Datos"
+                >
+                  <Save className="w-3.5 h-3.5" /> Guardar Lista
+                </button>
+
+                {/* Botón Abrir Listas Guardadas */}
+                <button
+                  type="button"
+                  onClick={() => setShowListsModal(true)}
+                  className="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-sky-400 font-semibold rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5"
+                  title="Cargar una lista guardada previamente"
+                >
+                  <FolderOpen className="w-3.5 h-3.5" /> Mis Listas ({savedLists.length})
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setShowQuickPaste(!showQuickPaste)}
@@ -212,7 +262,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
                   }`}
                 >
                   <ClipboardList className="w-4 h-4 text-sky-400" />
-                  <span>{showQuickPaste ? 'Ocultar Pegado' : '⚡ Pegar Varios Correos'}</span>
+                  <span>{showQuickPaste ? 'Ocultar' : '⚡ Pegar Varios Correos'}</span>
                 </button>
 
                 <button
@@ -244,6 +294,92 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
                 )}
               </div>
             </div>
+
+            {/* Modal para Guardar Lista con Nombre */}
+            {showSaveModal && (
+              <div className="mb-3.5 p-4 bg-slate-950 border border-emerald-500/40 rounded-2xl space-y-3 shadow-2xl animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                    <Save className="w-4 h-4" /> Guardar Lista en la Base de Datos ({recipients.length} contactos)
+                  </span>
+                  <button onClick={() => setShowSaveModal(false)} className="text-slate-400 hover:text-white">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Ej: Mis 29 Correos - Postulaciones Marzo"
+                  value={listNameInput}
+                  onChange={(e) => setListNameInput(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setShowSaveModal(false)}
+                    className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleConfirmSaveList}
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs shadow-md shadow-emerald-600/20"
+                  >
+                    Confirmar y Guardar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Modal para Abrir Listas Guardadas */}
+            {showListsModal && (
+              <div className="mb-3.5 p-4 bg-slate-950 border border-sky-500/40 rounded-2xl space-y-3 shadow-2xl animate-fade-in">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <span className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
+                    <Database className="w-4 h-4 text-sky-400" /> Mis Listas Guardadas ({savedLists.length})
+                  </span>
+                  <button onClick={() => setShowListsModal(false)} className="text-slate-400 hover:text-white">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {savedLists.length === 0 ? (
+                  <p className="text-xs text-slate-500 py-3 text-center">No tienes listas guardadas aún. Haz clic en "Guardar Lista" para respaldar tus contactos.</p>
+                ) : (
+                  <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                    {savedLists.map((l) => (
+                      <div key={l.id} className="flex items-center justify-between bg-slate-900 p-2.5 rounded-xl border border-slate-800 hover:border-sky-500/40">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-200">{l.name}</span>
+                          <span className="text-[10px] text-slate-400">
+                            {l.recipients?.length || 0} Contactos • Guardado: {new Date(l.updatedAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              if (onLoadList) onLoadList(l);
+                              setShowListsModal(false);
+                            }}
+                            className="px-3 py-1 bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 border border-sky-500/40 rounded-lg text-xs font-semibold"
+                          >
+                            Cargar
+                          </button>
+                          {onDeleteList && (
+                            <button
+                              onClick={() => onDeleteList(l.id)}
+                              className="p-1 text-slate-500 hover:text-red-400"
+                              title="Eliminar lista"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Quick Mass Paste Dropdown Panel */}
             {showQuickPaste && (
@@ -288,7 +424,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
               </div>
             )}
 
-            {/* FLUID 100% VISIBLE TABLE CONTAINER (No Horizontal Scrollbar!) */}
+            {/* FLUID 100% VISIBLE TABLE CONTAINER */}
             <div className="flex-1 border border-slate-800 rounded-2xl overflow-y-auto bg-slate-950/80 max-h-[380px] shadow-inner">
               {recipients.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -335,7 +471,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
                         <tr key={idx} className="hover:bg-slate-900/60 transition-colors">
                           <td className="py-2 px-1 text-slate-500 text-center font-mono text-[11px]">{idx + 1}</td>
 
-                          {/* Email Input Field (44% width - Spacious & Crisp) */}
+                          {/* Email Input Field */}
                           <td className="py-2 px-1.5">
                             <div className="relative flex items-center w-full">
                               <input
@@ -363,7 +499,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
                             </div>
                           </td>
 
-                          {/* Nombre Input Field (16% width) */}
+                          {/* Nombre Input Field */}
                           <td className="py-2 px-1.5">
                             <input
                               type="text"
@@ -374,7 +510,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
                             />
                           </td>
 
-                          {/* Empresa Input Field (15% width) */}
+                          {/* Empresa Input Field */}
                           <td className="py-2 px-1.5">
                             <input
                               type="text"
@@ -385,7 +521,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
                             />
                           </td>
 
-                          {/* Puesto Input Field (13% width) */}
+                          {/* Puesto Input Field */}
                           <td className="py-2 px-1.5">
                             <input
                               type="text"
@@ -396,7 +532,7 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
                             />
                           </td>
 
-                          {/* Delete Action (6% width) */}
+                          {/* Delete Action */}
                           <td className="py-2 px-1 text-center">
                             <button
                               type="button"
@@ -480,7 +616,9 @@ export function RecipientEditor({ recipients, onChangeRecipients }) {
             </span>
           )}
         </div>
-        <span className="text-slate-500 text-[11px]">Todos los campos están optimizados para mostrarse al 100% en pantalla.</span>
+        <span className="text-emerald-400 text-[11px] font-medium flex items-center gap-1">
+          <Check className="w-3.5 h-3.5" /> Tus {recipients.length} contactos están protegidos y guardados automáticamente.
+        </span>
       </div>
     </div>
   );

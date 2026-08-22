@@ -19,10 +19,21 @@ export default function App() {
     hasCredentials: false
   });
 
-  // Estado de Campaña y Correo
-  const [recipients, setRecipients] = useState([
-    { email: 'contacto@ejemplo.com', nombre: 'Carlos Ruiz', empresa: 'Tech Corp', puesto: 'Head of Engineering' }
-  ]);
+  // Estado de Campaña y Correo con Auto-Recuperación de localStorage
+  const [recipients, setRecipients] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gmail_crm_saved_recipients');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Error cargando contactos de localStorage:', e);
+    }
+    return [
+      { email: 'contacto@ejemplo.com', nombre: 'Carlos Ruiz', empresa: 'Tech Corp', puesto: 'Head of Engineering' }
+    ];
+  });
   const [subject, setSubject] = useState('Postulación a vacante de Software Developer - {nombre}');
   const [body, setBody] = useState(
     'Hola {nombre},\n\nEspero que te encuentres muy bien. Te escribo con interés en la posición de {puesto} en {empresa}.\n\nCuento con experiencia relevante en desarrollo web y gestión de proyectos. Adjunto mi CV en PDF para tu revisión.\n\nQuedo a tu disposición para conversar.\n\nSaludos cordiales,'
@@ -33,6 +44,7 @@ export default function App() {
   // Datos Auxiliares
   const [templates, setTemplates] = useState([]);
   const [history, setHistory] = useState([]);
+  const [savedLists, setSavedLists] = useState([]);
   const [sendingState, setSendingState] = useState({ status: 'idle' });
 
   // Pestañas y Modales
@@ -43,11 +55,21 @@ export default function App() {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isSendingModalOpen, setIsSendingModalOpen] = useState(false);
 
+  // Guardar destinatarios automáticamente en localStorage cada vez que cambien
+  useEffect(() => {
+    try {
+      localStorage.setItem('gmail_crm_saved_recipients', JSON.stringify(recipients));
+    } catch (e) {
+      console.warn('Error guardando en localStorage:', e);
+    }
+  }, [recipients]);
+
   // Cargar estado inicial al montar
   useEffect(() => {
     checkAuthStatus();
     loadTemplates();
     loadHistory();
+    loadSavedLists();
 
     // Escuchar mensaje emergente de OAuth popup
     const handleOAuthMessage = (event) => {
@@ -267,6 +289,10 @@ export default function App() {
               <RecipientEditor
                 recipients={recipients}
                 onChangeRecipients={setRecipients}
+                savedLists={savedLists}
+                onSaveList={handleSaveContactList}
+                onLoadList={(list) => setRecipients(list.recipients || [])}
+                onDeleteList={handleDeleteContactList}
               />
 
               {/* Sección 2: Compositor de Correo a Ancho Completo */}
@@ -295,6 +321,10 @@ export default function App() {
                 <RecipientEditor
                   recipients={recipients}
                   onChangeRecipients={setRecipients}
+                  savedLists={savedLists}
+                  onSaveList={handleSaveContactList}
+                  onLoadList={(list) => setRecipients(list.recipients || [])}
+                  onDeleteList={handleDeleteContactList}
                 />
               </div>
 

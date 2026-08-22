@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.js';
 import emailRoutes from './routes/email.js';
 import templateRoutes from './routes/templates.js';
 import historyRoutes from './routes/history.js';
+import listRoutes from './routes/lists.js';
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/history', historyRoutes);
+app.use('/api/lists', listRoutes);
 
 // Manejador global de errores
 app.use((err, req, res, next) => {
