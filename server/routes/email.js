@@ -59,12 +59,8 @@ router.post('/send', upload.single('attachment'), requireAuth, async (req, res) 
       return res.status(400).json({ error: 'La lista de destinatarios es requerida.' });
     }
 
-    const finalSubject = subject !== undefined ? subject : '';
+    const finalSubject = (subject && subject.trim()) ? subject.trim() : '(Sin asunto)';
     const finalBody = body !== undefined ? body : '';
-
-    if (!finalSubject.trim() && !finalBody.trim() && !fileAttachment) {
-      return res.status(400).json({ error: 'Debes ingresar un asunto, un mensaje o adjuntar un archivo.' });
-    }
 
     let recipients;
     try {

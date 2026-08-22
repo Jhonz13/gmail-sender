@@ -269,10 +269,13 @@ export default function App() {
       return;
     }
 
-    if (!subject.trim() && !body.trim() && !attachment) {
-      alert('Debes escribir un asunto, un mensaje o adjuntar un archivo PDF.');
+    if (!authStatus.isAuthenticated) {
+      alert('Por favor conecta tu cuenta de Gmail para comenzar el envío.');
+      handleConnectGmail();
       return;
     }
+
+    const finalSubject = subject.trim() || '(Sin asunto)';
 
     // Advertencia Anti-Spam para envíos de más de 20 correos
     if (validRecipients.length > 20) {
@@ -284,7 +287,7 @@ export default function App() {
 
     const formData = new FormData();
     formData.append('recipientsJson', JSON.stringify(validRecipients));
-    formData.append('subject', subject);
+    formData.append('subject', finalSubject);
     formData.append('body', body);
     formData.append('delaySeconds', delaySeconds);
     if (attachment) {

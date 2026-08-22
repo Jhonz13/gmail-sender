@@ -212,7 +212,7 @@ export function EmailComposer({
         <button
           type="button"
           onClick={onOpenPreview}
-          disabled={!isReadyToSend}
+          disabled={recipientsCount === 0}
           className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Eye className="w-4 h-4 text-sky-400" /> Vista Previa del Correo
@@ -221,7 +221,7 @@ export function EmailComposer({
         <button
           type="button"
           onClick={onSend}
-          disabled={!isAuthenticated || !isReadyToSend}
+          disabled={recipientsCount === 0}
           className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <Send className="w-4.5 h-4.5" />
