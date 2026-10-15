@@ -77,43 +77,69 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem('gmail_crm_saved_recipients', JSON.stringify(recipients));
+      const activeEmail = authStatus?.userInfo?.email || localStorage.getItem('gmail_crm_user_email');
+      if (activeEmail) {
+        localStorage.setItem(`gmail_crm_recipients_${activeEmail}`, JSON.stringify(recipients));
+      }
     } catch (e) {
       console.warn('Error guardando en localStorage:', e);
     }
-  }, [recipients]);
+  }, [recipients, authStatus?.userInfo?.email]);
 
   // Cargar estado inicial al montar
   useEffect(() => {
-    checkAuthStatus();
-    loadTemplates();
-    loadHistory();
-    loadSavedLists();
+    const initApp = async () => {
+      await checkAuthStatus();
+      const savedEmail = localStorage.getItem('gmail_crm_user_email');
+      await reloadUserData(savedEmail);
+    };
+    initApp();
 
     // Escuchar mensaje emergente de OAuth popup
-    const handleOAuthMessage = (event) => {
+    const handleOAuthMessage = async (event) => {
       const isSuccess = event.data === 'oauth-success' || (event.data && event.data.type === 'oauth-success');
       if (isSuccess) {
+        let userEmail = null;
         if (event.data && typeof event.data === 'object') {
           if (event.data.tokens) {
             localStorage.setItem('gmail_crm_tokens', JSON.stringify(event.data.tokens));
           }
           if (event.data.userInfo) {
             localStorage.setItem('gmail_crm_user_info', JSON.stringify(event.data.userInfo));
+            userEmail = event.data.userInfo.email;
           }
+        }
+        if (userEmail) {
+          localStorage.setItem('gmail_crm_user_email', userEmail);
         }
         const updatedStatus = {
           isAuthenticated: true,
-          userInfo: event.data?.userInfo || { email: 'Cuenta Gmail Conectada' },
+          userInfo: event.data?.userInfo || { email: userEmail || 'Cuenta Gmail Conectada' },
           hasCredentials: true
         };
         localStorage.setItem('gmail_crm_auth_status', JSON.stringify(updatedStatus));
         setAuthStatus(updatedStatus);
-        checkAuthStatus();
+        await checkAuthStatus();
+
+        // ¡CRÍTICO! Sincronizar inmediatamente listas, plantillas e historial asociados a esta cuenta de Gmail
+        await reloadUserData(userEmail);
       }
     };
     window.addEventListener('message', handleOAuthMessage);
     return () => window.removeEventListener('message', handleOAuthMessage);
   }, []);
+
+  const reloadUserData = async (emailOverride) => {
+    try {
+      await Promise.allSettled([
+        loadSavedLists(emailOverride),
+        loadTemplates(),
+        loadHistory()
+      ]);
+    } catch (e) {
+      console.error('Error al recargar datos del usuario:', e);
+    }
+  };
 
   // Polling de estado de envío si hay campaña activa
   useEffect(() => {
@@ -140,6 +166,9 @@ export default function App() {
       setAuthStatus(data);
       if (data && data.isAuthenticated) {
         localStorage.setItem('gmail_crm_auth_status', JSON.stringify(data));
+        if (data.userInfo?.email) {
+          localStorage.setItem('gmail_crm_user_email', data.userInfo.email);
+        }
       }
     } catch (e) {
       console.error('Error verificando autenticación:', e);
@@ -164,34 +193,70 @@ export default function App() {
     }
   };
 
-  const loadSavedLists = async () => {
+  const loadSavedLists = async (emailOverride) => {
     try {
+      const activeEmail = emailOverride || authStatus?.userInfo?.email || localStorage.getItem('gmail_crm_user_email');
+      const cacheKey = activeEmail ? `gmail_crm_saved_lists_${activeEmail}` : 'gmail_crm_saved_lists';
+
+      // 1. Revisar si hay listas en caché local del navegador
+      let localLists = [];
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        const legacy = localStorage.getItem('gmail_crm_saved_lists');
+        if (cached) localLists = JSON.parse(cached);
+        else if (legacy) localLists = JSON.parse(legacy);
+      } catch (e) {}
+
+      // Si tenemos listas locales y el usuario está conectado con Gmail, sincronizarlas/fusionarlas con su cuenta
+      if (activeEmail && Array.isArray(localLists) && localLists.length > 0) {
+        try {
+          const syncRes = await api.syncContactLists(localLists);
+          if (syncRes && Array.isArray(syncRes.lists)) {
+            setSavedLists(syncRes.lists);
+            localStorage.setItem(cacheKey, JSON.stringify(syncRes.lists));
+            localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(syncRes.lists));
+            return;
+          }
+        } catch (syncErr) {
+          console.warn('Sync inicial con el servidor no completado, cargando directo:', syncErr);
+        }
+      }
+
+      // 2. Consultar listas remotas del servidor para esta cuenta
       const lists = await api.getSavedLists();
       if (Array.isArray(lists) && lists.length > 0) {
         setSavedLists(lists);
+        localStorage.setItem(cacheKey, JSON.stringify(lists));
         localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(lists));
+      } else if (Array.isArray(localLists) && localLists.length > 0) {
+        setSavedLists(localLists);
       } else {
-        const local = localStorage.getItem('gmail_crm_saved_lists');
-        if (local) setSavedLists(JSON.parse(local));
+        setSavedLists([]);
       }
     } catch (e) {
       console.error('Error cargando listas guardadas:', e);
       try {
-        const local = localStorage.getItem('gmail_crm_saved_lists');
+        const activeEmail = emailOverride || authStatus?.userInfo?.email || localStorage.getItem('gmail_crm_user_email');
+        const cacheKey = activeEmail ? `gmail_crm_saved_lists_${activeEmail}` : 'gmail_crm_saved_lists';
+        const local = localStorage.getItem(cacheKey) || localStorage.getItem('gmail_crm_saved_lists');
         if (local) setSavedLists(JSON.parse(local));
       } catch (err) {}
     }
   };
 
   const handleSaveContactList = async (name) => {
+    const activeEmail = authStatus?.userInfo?.email || localStorage.getItem('gmail_crm_user_email');
+    const cacheKey = activeEmail ? `gmail_crm_saved_lists_${activeEmail}` : 'gmail_crm_saved_lists';
+
     try {
       const res = await api.saveContactList({ name, recipients });
       const updated = res.lists || [];
       setSavedLists(updated);
+      localStorage.setItem(cacheKey, JSON.stringify(updated));
       localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(updated));
-      alert(`¡Lista "${name}" guardada con éxito de forma permanente!`);
+      alert(`¡Lista "${name}" guardada y sincronizada con tu cuenta de Gmail exitosamente!`);
     } catch (e) {
-      // Fallback local si falla la red
+      console.warn('Error guardando en servidor, respaldo local:', e);
       const newListItem = {
         id: `list-${Date.now()}`,
         name: name || `Lista (${recipients.length})`,
@@ -200,21 +265,52 @@ export default function App() {
       };
       const updated = [newListItem, ...savedLists];
       setSavedLists(updated);
+      localStorage.setItem(cacheKey, JSON.stringify(updated));
       localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(updated));
-      alert(`¡Lista "${name}" guardada en el navegador!`);
+      alert(`¡Lista "${name}" guardada localmente! Se sincronizará automáticamente con tu cuenta al reconectar.`);
     }
   };
 
   const handleDeleteContactList = async (id) => {
+    const activeEmail = authStatus?.userInfo?.email || localStorage.getItem('gmail_crm_user_email');
+    const cacheKey = activeEmail ? `gmail_crm_saved_lists_${activeEmail}` : 'gmail_crm_saved_lists';
+
     try {
       const res = await api.deleteContactList(id);
       const updated = res.lists || [];
       setSavedLists(updated);
+      localStorage.setItem(cacheKey, JSON.stringify(updated));
       localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(updated));
     } catch (e) {
       const updated = savedLists.filter(l => l.id !== id);
       setSavedLists(updated);
+      localStorage.setItem(cacheKey, JSON.stringify(updated));
       localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(updated));
+    }
+  };
+
+  const handleImportContactLists = async (importedLists) => {
+    if (!Array.isArray(importedLists) || importedLists.length === 0) {
+      alert('El archivo no contiene listas válidas.');
+      return;
+    }
+    const activeEmail = authStatus?.userInfo?.email || localStorage.getItem('gmail_crm_user_email');
+    const cacheKey = activeEmail ? `gmail_crm_saved_lists_${activeEmail}` : 'gmail_crm_saved_lists';
+
+    try {
+      const res = await api.syncContactLists(importedLists);
+      const updated = res.lists || [];
+      setSavedLists(updated);
+      localStorage.setItem(cacheKey, JSON.stringify(updated));
+      localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(updated));
+      alert(`¡Se importaron y sincronizaron ${importedLists.length} listas con éxito!`);
+    } catch (e) {
+      console.warn('Error sincronizando importación con servidor, aplicando localmente:', e);
+      const merged = [...importedLists, ...savedLists];
+      setSavedLists(merged);
+      localStorage.setItem(cacheKey, JSON.stringify(merged));
+      localStorage.setItem('gmail_crm_saved_lists', JSON.stringify(merged));
+      alert(`¡Se importaron ${importedLists.length} listas en tu navegador!`);
     }
   };
 
@@ -400,6 +496,9 @@ export default function App() {
                 onSaveList={handleSaveContactList}
                 onLoadList={(list) => setRecipients(list.recipients || [])}
                 onDeleteList={handleDeleteContactList}
+                onImportLists={handleImportContactLists}
+                userEmail={authStatus?.userInfo?.email || localStorage.getItem('gmail_crm_user_email')}
+                storageInfo={authStatus?.storage}
               />
 
               {/* Sección 2: Compositor de Correo a Ancho Completo */}
@@ -432,6 +531,9 @@ export default function App() {
                   onSaveList={handleSaveContactList}
                   onLoadList={(list) => setRecipients(list.recipients || [])}
                   onDeleteList={handleDeleteContactList}
+                  onImportLists={handleImportContactLists}
+                  userEmail={authStatus?.userInfo?.email || localStorage.getItem('gmail_crm_user_email')}
+                  storageInfo={authStatus?.storage}
                 />
               </div>
 

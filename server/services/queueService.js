@@ -52,7 +52,7 @@ class QueueService {
     return result;
   }
 
-  async startJob({ recipients, subject, body, delaySeconds = 5, attachment = null, passedTokens = null, passedCredentials = null }) {
+  async startJob({ recipients, subject, body, delaySeconds = 5, attachment = null, passedTokens = null, passedCredentials = null, userEmail = null }) {
     if (this.activeJob && (this.activeJob.status === 'running' || this.activeJob.status === 'paused')) {
       throw new Error('Ya hay una campaña en curso. Por favor espere o cancólela.');
     }
@@ -61,6 +61,7 @@ class QueueService {
     this.activeJob = {
       id: jobId,
       status: 'running',
+      userEmail,
       recipients,
       subject,
       body,
@@ -190,7 +191,7 @@ class QueueService {
     }
 
     // Registrar en el historial de la base de datos
-    addHistoryRecord({
+    addHistoryRecord(this.activeJob.userEmail, {
       id: this.activeJob.id,
       subject: this.activeJob.subject,
       totalRecipients: this.activeJob.recipients.length,

@@ -10,6 +10,19 @@ function getAuthHeaders() {
   if (savedCreds) {
     headers['x-google-credentials'] = savedCreds;
   }
+  const savedUserInfo = localStorage.getItem('gmail_crm_user_info');
+  if (savedUserInfo) {
+    try {
+      const parsed = JSON.parse(savedUserInfo);
+      if (parsed && parsed.email) {
+        headers['x-user-email'] = parsed.email.trim().toLowerCase();
+      }
+    } catch (e) {}
+  }
+  const savedEmail = localStorage.getItem('gmail_crm_user_email');
+  if (!headers['x-user-email'] && savedEmail) {
+    headers['x-user-email'] = savedEmail.trim().toLowerCase();
+  }
   return headers;
 }
 
@@ -50,6 +63,7 @@ export const api = {
   async logout() {
     localStorage.removeItem('gmail_crm_tokens');
     localStorage.removeItem('gmail_crm_user_info');
+    localStorage.removeItem('gmail_crm_user_email');
     localStorage.removeItem('gmail_crm_auth_status');
     const res = await fetch(`${API_BASE}/auth/logout`, { 
       method: 'POST',
@@ -78,35 +92,48 @@ export const api = {
   },
 
   async getCampaignStatus() {
-    const res = await fetch(`${API_BASE}/email/status`);
+    const res = await fetch(`${API_BASE}/email/status`, {
+      headers: { ...getAuthHeaders() }
+    });
     return handleResponse(res);
   },
 
   async pauseCampaign() {
-    const res = await fetch(`${API_BASE}/email/pause`, { method: 'POST' });
+    const res = await fetch(`${API_BASE}/email/pause`, { 
+      method: 'POST',
+      headers: { ...getAuthHeaders() }
+    });
     return handleResponse(res);
   },
 
   async resumeCampaign() {
-    const res = await fetch(`${API_BASE}/email/resume`, { method: 'POST' });
+    const res = await fetch(`${API_BASE}/email/resume`, { 
+      method: 'POST',
+      headers: { ...getAuthHeaders() }
+    });
     return handleResponse(res);
   },
 
   async cancelCampaign() {
-    const res = await fetch(`${API_BASE}/email/cancel`, { method: 'POST' });
+    const res = await fetch(`${API_BASE}/email/cancel`, { 
+      method: 'POST',
+      headers: { ...getAuthHeaders() }
+    });
     return handleResponse(res);
   },
 
   // Templates
   async getTemplates() {
-    const res = await fetch(`${API_BASE}/templates`);
+    const res = await fetch(`${API_BASE}/templates`, {
+      headers: { ...getAuthHeaders() }
+    });
     return handleResponse(res);
   },
 
   async saveTemplate(template) {
     const res = await fetch(`${API_BASE}/templates`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify(template)
     });
     return handleResponse(res);
@@ -114,35 +141,50 @@ export const api = {
 
   async deleteTemplate(id) {
     const res = await fetch(`${API_BASE}/templates/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: { ...getAuthHeaders() }
     });
     return handleResponse(res);
   },
 
   // History
   async getHistory() {
-    const res = await fetch(`${API_BASE}/history`);
+    const res = await fetch(`${API_BASE}/history`, {
+      headers: { ...getAuthHeaders() }
+    });
     return handleResponse(res);
   },
 
   // Saved Contact Lists
   async getSavedLists() {
-    const res = await fetch(`${API_BASE}/lists`);
+    const res = await fetch(`${API_BASE}/lists`, {
+      headers: { ...getAuthHeaders() }
+    });
     return handleResponse(res);
   },
 
   async saveContactList(listObj) {
     const res = await fetch(`${API_BASE}/lists`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify(listObj)
+    });
+    return handleResponse(res);
+  },
+
+  async syncContactLists(lists) {
+    const res = await fetch(`${API_BASE}/lists/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ lists })
     });
     return handleResponse(res);
   },
 
   async deleteContactList(id) {
     const res = await fetch(`${API_BASE}/lists/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: { ...getAuthHeaders() }
     });
     return handleResponse(res);
   },

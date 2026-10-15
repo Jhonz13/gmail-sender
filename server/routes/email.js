@@ -4,6 +4,7 @@ import fs from 'fs';
 import { UPLOADS_DIR } from '../config.js';
 import { queueService } from '../services/queueService.js';
 import { getTokens } from '../services/dbStore.js';
+import { getUserEmailFromRequest } from '../services/authHelper.js';
 
 const router = express.Router();
 
@@ -80,7 +81,8 @@ router.post('/send', upload.single('attachment'), requireAuth, async (req, res) 
       delaySeconds: delaySeconds || 5,
       attachment: fileAttachment,
       passedTokens: req.passedTokens,
-      passedCredentials: req.passedCredentials
+      passedCredentials: req.passedCredentials,
+      userEmail: getUserEmailFromRequest(req)
     });
 
     res.json({ message: 'Campaña iniciada con éxito', state });

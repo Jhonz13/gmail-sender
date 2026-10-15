@@ -1,6 +1,6 @@
 import express from 'express';
 import { getAuthUrl, handleOAuthCallback, revokeOAuthToken } from '../services/gmailService.js';
-import { getTokens, getUserInfo, updateCredentials, getCredentials } from '../services/dbStore.js';
+import { getTokens, getUserInfo, updateCredentials, getCredentials, getStorageInfo } from '../services/dbStore.js';
 
 const router = express.Router();
 
@@ -31,13 +31,19 @@ router.get('/status', (req, res) => {
     } catch (e) {}
   }
 
+  const headerEmail = req.headers['x-user-email'];
+  if (headerEmail && (!userInfo || !userInfo.email)) {
+    userInfo = { ...(userInfo || {}), email: headerEmail.trim().toLowerCase() };
+  }
+
   const hasValidAuth = !!(tokens && (tokens.access_token || tokens.refresh_token));
 
   res.json({
     isAuthenticated: hasValidAuth,
     userInfo: userInfo || (hasValidAuth ? { email: 'Cuenta Gmail Conectada' } : null),
     hasCredentials: !!(credentials.clientId && credentials.clientSecret),
-    credentials
+    credentials,
+    storage: getStorageInfo()
   });
 });
 

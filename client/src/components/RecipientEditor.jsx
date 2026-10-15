@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Users, Plus, Trash2, Upload, CheckCircle2, AlertCircle, Sparkles, Filter, ClipboardList, FileSpreadsheet, Save, FolderOpen, X, Check, Database } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Users, Plus, Trash2, Upload, CheckCircle2, AlertCircle, Sparkles, Filter, ClipboardList, FileSpreadsheet, Save, FolderOpen, X, Check, Database, Download, Cloud } from 'lucide-react';
 
 export function RecipientEditor({
   recipients,
@@ -7,8 +7,12 @@ export function RecipientEditor({
   savedLists = [],
   onSaveList,
   onLoadList,
-  onDeleteList
+  onDeleteList,
+  onImportLists,
+  userEmail,
+  storageInfo
 }) {
+  const fileImportRef = useRef(null);
   const [activeMode, setActiveMode] = useState('table'); // 'table' | 'paste'
   const [pasteText, setPasteText] = useState('');
   const [filterQuery, setFilterQuery] = useState('');
@@ -70,6 +74,42 @@ export function RecipientEditor({
     }
     setListNameInput('');
     setShowSaveModal(false);
+  };
+
+  // Exportar todas las listas guardadas a un archivo JSON de respaldo
+  const handleExportLists = () => {
+    if (!savedLists || savedLists.length === 0) {
+      alert('No hay listas guardadas para exportar.');
+      return;
+    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedLists, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `gmail_crm_listas_${(userEmail || 'respaldo').replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  // Importar listas guardadas desde un archivo JSON
+  const handleImportFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (onImportLists) onImportLists(parsed);
+        } else {
+          alert('El archivo no contiene un formato de listas válido.');
+        }
+      } catch (err) {
+        alert('Error al leer el archivo JSON: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   // Procesar pegado de texto rápido en bloque
@@ -334,18 +374,44 @@ export function RecipientEditor({
             {showListsModal && (
               <div className="mb-3.5 p-4 bg-slate-950 border border-sky-500/40 rounded-2xl space-y-3 shadow-2xl animate-fade-in">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
-                    <Database className="w-4 h-4 text-sky-400" /> Mis Listas Guardadas ({savedLists.length})
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4 text-sky-400" />
+                    <span className="text-xs font-bold text-sky-300">
+                      Mis Listas Guardadas ({savedLists.length})
+                    </span>
+                  </div>
                   <button onClick={() => setShowListsModal(false)} className="text-slate-400 hover:text-white">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                {savedLists.length === 0 ? (
-                  <p className="text-xs text-slate-500 py-3 text-center">No tienes listas guardadas aún. Haz clic en "Guardar Lista" para respaldar tus contactos.</p>
+                {/* Banner de Estado de Sincronización Multi-Dispositivo */}
+                {userEmail ? (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-[11px] text-emerald-300">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Sincronizado con: <strong className="text-white">{userEmail}</strong></span>
+                    </div>
+                    <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 shrink-0">
+                      Multi-Dispositivo Activo
+                    </span>
+                  </div>
                 ) : (
-                  <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2 bg-amber-950/40 border border-amber-500/30 rounded-xl text-[11px] text-amber-300">
+                    <div className="flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>Modo Local (Sin sincronizar)</span>
+                    </div>
+                    <span className="text-[10px] text-amber-400/90">
+                      Conecta tu Gmail para sincronizar con tus otros dispositivos
+                    </span>
+                  </div>
+                )}
+
+                {savedLists.length === 0 ? (
+                  <p className="text-xs text-slate-500 py-4 text-center">No tienes listas guardadas aún. Haz clic en "Guardar Lista" para respaldar tus contactos.</p>
+                ) : (
+                  <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1">
                     {savedLists.map((l) => (
                       <div key={l.id} className="flex items-center justify-between bg-slate-900 p-2.5 rounded-xl border border-slate-800 hover:border-sky-500/40">
                         <div className="flex flex-col">
@@ -378,6 +444,37 @@ export function RecipientEditor({
                     ))}
                   </div>
                 )}
+
+                {/* Barra de herramientas para Importar/Exportar Respaldo entre dispositivos */}
+                <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      ref={fileImportRef}
+                      onChange={handleImportFile}
+                      accept=".json"
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileImportRef.current?.click()}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition-colors flex items-center gap-1.5"
+                      title="Importar un archivo JSON con listas guardadas"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-sky-400" /> Importar Respaldo JSON
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleExportLists}
+                      disabled={savedLists.length === 0}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition-colors flex items-center gap-1.5 disabled:opacity-40"
+                      title="Descargar tus listas en un archivo JSON para pasarlo a otro dispositivo"
+                    >
+                      <Download className="w-3.5 h-3.5 text-emerald-400" /> Exportar Respaldo JSON
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

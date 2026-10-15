@@ -1,13 +1,26 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, Key, Check, HelpCircle, ShieldAlert, Sparkles } from 'lucide-react';
+import { X, ExternalLink, Key, Check, HelpCircle, ShieldAlert, Sparkles, Database, Copy, CheckCheck } from 'lucide-react';
 
 export function GoogleSetupModal({ isOpen, onClose, initialCredentials, onSaveCredentials }) {
   const [clientId, setClientId] = useState(initialCredentials?.clientId || '');
   const [clientSecret, setClientSecret] = useState(initialCredentials?.clientSecret || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('credentials'); // 'credentials' | 'guide'
+  const [activeTab, setActiveTab] = useState('credentials'); // 'credentials' | 'guide' | 'database'
+  const [copiedUri, setCopiedUri] = useState(false);
 
   if (!isOpen) return null;
+
+  const dynamicRedirectUri = typeof window !== 'undefined' 
+    ? `${window.location.origin}/api/auth/google/callback` 
+    : 'http://localhost:3001/api/auth/google/callback';
+
+  const handleCopyUri = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(dynamicRedirectUri);
+      setCopiedUri(true);
+      setTimeout(() => setCopiedUri(false), 2000);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,8 +46,8 @@ export function GoogleSetupModal({ isOpen, onClose, initialCredentials, onSaveCr
               <Key className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Configuración Google OAuth 2.0</h2>
-              <p className="text-xs text-slate-400">Ingresa tus credenciales para habilitar la API de Gmail</p>
+              <h2 className="text-lg font-bold text-white">Configuración Google OAuth & Sincronización</h2>
+              <p className="text-xs text-slate-400">Ingresa tus credenciales para habilitar la API de Gmail y sincronizar entre dispositivos</p>
             </div>
           </div>
           <button
@@ -46,10 +59,10 @@ export function GoogleSetupModal({ isOpen, onClose, initialCredentials, onSaveCr
         </div>
 
         {/* Tab Selection */}
-        <div className="flex border-b border-slate-800 bg-slate-950/50 px-6">
+        <div className="flex border-b border-slate-800 bg-slate-950/50 px-6 overflow-x-auto">
           <button
             onClick={() => setActiveTab('credentials')}
-            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'credentials'
                 ? 'border-sky-500 text-sky-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -59,13 +72,23 @@ export function GoogleSetupModal({ isOpen, onClose, initialCredentials, onSaveCr
           </button>
           <button
             onClick={() => setActiveTab('guide')}
-            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'guide'
                 ? 'border-sky-500 text-sky-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <HelpCircle className="w-4 h-4" /> Guía Paso a Paso (Google Cloud)
+          </button>
+          <button
+            onClick={() => setActiveTab('database')}
+            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'database'
+                ? 'border-sky-500 text-sky-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Database className="w-4 h-4" /> Base de Datos en la Nube (Vercel)
           </button>
         </div>
 
@@ -80,11 +103,23 @@ export function GoogleSetupModal({ isOpen, onClose, initialCredentials, onSaveCr
                 <p>
                   Se obtienen de tu propia cuenta de Google mediante <strong>Google Cloud Console</strong> (gratuito). Necesitas crear un ID de cliente OAuth de tipo <em>Web Application</em>.
                 </p>
-                <div className="pt-1">
-                  <span className="text-slate-400">URI de redirección requerido:</span>{' '}
-                  <code className="bg-slate-900 text-emerald-400 px-2 py-0.5 rounded border border-slate-800 font-mono">
-                    http://localhost:3001/api/auth/google/callback
-                  </code>
+                <div className="pt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-slate-400 font-medium">URI de redirección para este dispositivo / dominio:</span>
+                    <button
+                      type="button"
+                      onClick={handleCopyUri}
+                      className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1 font-semibold"
+                    >
+                      {copiedUri ? <CheckCheck className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedUri ? 'Copiado al portapapeles' : 'Copiar URI'}
+                    </button>
+                  </div>
+                  <div className="p-2 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-between">
+                    <code className="text-emerald-400 font-mono text-xs break-all">
+                      {dynamicRedirectUri}
+                    </code>
+                  </div>
                 </div>
               </div>
 
@@ -134,7 +169,7 @@ export function GoogleSetupModal({ isOpen, onClose, initialCredentials, onSaveCr
                 </button>
               </div>
             </form>
-          ) : (
+          ) : activeTab === 'guide' ? (
             <div className="space-y-4 text-xs text-slate-300">
               <div className="flex items-center justify-between p-3 bg-sky-950/40 border border-sky-800/50 rounded-xl">
                 <span className="text-slate-200">Acceso rápido al portal de Google Cloud:</span>
@@ -173,8 +208,9 @@ export function GoogleSetupModal({ isOpen, onClose, initialCredentials, onSaveCr
                   <p className="mt-1 text-slate-400 pl-4">
                     Ve a <em>"Credenciales" &gt; "Crear credenciales" &gt; "ID de cliente de OAuth"</em>.
                     <br />- Tipo de aplicación: <strong>Aplicación Web</strong>
-                    <br />- URI de redireccionamiento autorizados: Añade exactamente{' '}
-                    <code className="text-emerald-400 font-mono">http://localhost:3001/api/auth/google/callback</code>
+                    <br />- URI de redireccionamiento autorizados: Añade exactamente:{' '}
+                    <code className="text-emerald-400 font-mono block mt-1 p-1 bg-slate-900 rounded">{dynamicRedirectUri}</code>
+                    <span className="text-[11px] text-slate-500 block mt-0.5">(Si también pruebas en local añade <code>http://localhost:3001/api/auth/google/callback</code>)</span>
                   </p>
                 </li>
                 <li className="p-3 bg-slate-950 rounded-lg border border-slate-800">
@@ -192,6 +228,45 @@ export function GoogleSetupModal({ isOpen, onClose, initialCredentials, onSaveCr
                 >
                   Entendido, ingresar mis datos
                 </button>
+              </div>
+            </div>
+          ) : (
+            /* Tab Base de Datos y Persistencia en Vercel */
+            <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
+              <div className="p-4 bg-sky-950/30 border border-sky-500/30 rounded-xl space-y-2">
+                <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                  <Database className="w-4 h-4 text-sky-400" /> Sincronización Multi-Dispositivo en Vercel
+                </h3>
+                <p className="text-slate-300">
+                  En un servidor en tu PC (localhost), tus listas se guardan automáticamente en tu disco local. En <strong>Vercel (Serverless)</strong>, las funciones son efímeras y no tienen disco duro compartido entre dispositivos.
+                </p>
+              </div>
+
+              <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+                <h4 className="font-bold text-emerald-400 text-xs uppercase tracking-wider">
+                  Opción 1: Conectar Vercel KV / Upstash Redis (Recomendado - 100% Gratis)
+                </h4>
+                <p className="text-slate-300">
+                  Permite sincronizar tus listas automáticamente en tiempo real entre tu computadora, teléfono y cualquier dispositivo:
+                </p>
+                <ol className="list-decimal list-inside space-y-1.5 pl-2 text-slate-400">
+                  <li>En tu panel de <a href="https://vercel.com/dashboard" target="_blank" rel="noreferrer" className="text-sky-400 underline">Vercel</a>, ve a tu proyecto &gt; pestaña <strong>Storage</strong>.</li>
+                  <li>Haz clic en <strong>Create Database</strong> y selecciona <strong>KV</strong> (con tecnología Upstash).</li>
+                  <li>Vercel asignará automáticamente las variables <code>KV_REST_API_URL</code> y <code>KV_REST_API_TOKEN</code>.</li>
+                  <li>¡Listo! Tu CRM sincronizará todas tus listas por cuenta de Gmail automáticamente.</li>
+                </ol>
+              </div>
+
+              <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+                <h4 className="font-bold text-sky-400 text-xs uppercase tracking-wider">
+                  Opción 2: Respaldo Manual con 1 Clic (Sin Base de Datos)
+                </h4>
+                <p className="text-slate-300">
+                  Si no deseas crear una base de datos en Vercel, hemos añadido los botones <strong>"Exportar Respaldo JSON"</strong> e <strong>"Importar Respaldo JSON"</strong> en el gestor de listas.
+                </p>
+                <p className="text-slate-400">
+                  Puedes descargar tu archivo de contactos desde un dispositivo y cargarlo en otro en 2 segundos sin configurar nada adicional.
+                </p>
               </div>
             </div>
           )}
